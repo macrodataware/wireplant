@@ -1,0 +1,64 @@
+[package]
+name = "wireplant_cli"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+homepage.workspace = true
+repository.workspace = true
+description = "Command-line orchestrator and entry point for WirePlant"
+readme.workspace = true
+keywords.workspace = true
+categories.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[[bin]]
+name = "wireplant"
+path = "src/main.rs"
+
+[dependencies]
+wireplant_core = { workspace = true }
+wireplant_config = { workspace = true }
+wireplant_engine = { workspace = true }
+wireplant_modbus = { workspace = true }
+wireplant_opcua = { workspace = true }
+wireplant_mqtt = { workspace = true }
+wireplant_api = { workspace = true }
+wireplant_tui = { workspace = true }
+tokio = { workspace = true, features = ["macros", "rt-multi-thread", "signal", "sync"] }
+clap = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+ratatui = { workspace = true }
+toml = { workspace = true }
+rusqlite = { workspace = true }
+
+[dev-dependencies]
+tokio-modbus = { workspace = true, features = ["tcp", "tcp-server"] }
+tower = { workspace = true }
+axum = { workspace = true }
+serde_json = { workspace = true }
+
+[[test]]
+name = "modbus_loopback"
+path = "../../tests/modbus_loopback.rs"
+
+[[test]]
+name = "cross_protocol_sync"
+path = "../../tests/cross_protocol_sync.rs"
+
+[[test]]
+name = "concurrency_hammer"
+path = "../../tests/concurrency_hammer.rs"
+
+[[test]]
+name = "scenario_conformance"
+path = "../../tests/scenario_conformance.rs"
+
+[[test]]
+name = "closed_loop_scada_test"
+path = "../../tests/closed_loop_scada_test.rs"

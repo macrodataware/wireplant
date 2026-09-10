@@ -1,0 +1,7 @@
+target/
+.git/
+.github/
+pki/private/
+wireplant_history.db
+*.db-shm
+*.db-wal

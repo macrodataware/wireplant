@@ -1,0 +1,28 @@
+[package]
+name = "wireplant_tui"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+homepage.workspace = true
+repository.workspace = true
+description = "Terminal user interface for interactive monitoring and control of WirePlant"
+readme.workspace = true
+keywords.workspace = true
+categories.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+wireplant_core = { workspace = true }
+wireplant_config = { workspace = true }
+wireplant_engine = { workspace = true }
+ratatui = { workspace = true }
+crossterm = { workspace = true }
+futures = { workspace = true }
+tokio = { workspace = true, features = ["sync", "time"] }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }

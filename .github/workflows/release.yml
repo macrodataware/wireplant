@@ -1,0 +1,182 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag (e.g. v0.1.0)'
+        required: true
+        default: 'v0.1.0'
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  build-binaries:
+    name: Build Binary (${{ matrix.target }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            use_cross: false
+            archive_ext: tar.gz
+          - os: ubuntu-latest
+            target: aarch64-unknown-linux-gnu
+            use_cross: true
+            archive_ext: tar.gz
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            use_cross: false
+            archive_ext: tar.gz
+          - os: macos-13
+            target: x86_64-apple-darwin
+            use_cross: false
+            archive_ext: tar.gz
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            use_cross: false
+            archive_ext: zip
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Install OpenSSL on Ubuntu host
+        if: matrix.os == 'ubuntu-latest' && !matrix.use_cross
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y pkg-config libssl-dev
+
+      - name: Install cross runner
+        if: matrix.use_cross
+        run: cargo install cross --git https://github.com/cross-rs/cross
+
+      - name: Build release binary
+        shell: bash
+        run: |
+          if [ "${{ matrix.use_cross }}" = "true" ]; then
+            cross build --release --target ${{ matrix.target }} --bin wireplant
+          else
+            cargo build --release --target ${{ matrix.target }} --bin wireplant
+          fi
+
+      - name: Package archive
+        shell: bash
+        run: |
+          TAG="${{ github.event.inputs.tag || github.ref_name }}"
+          if [ -z "$TAG" ] || [ "$TAG" = "master" ] || [ "$TAG" = "main" ]; then
+            TAG="${{ github.event.inputs.tag || 'v0.1.0' }}"
+          fi
+          ARCHIVE="wireplant-${TAG}-${{ matrix.target }}"
+          STAGE="dist_stage"
+          mkdir -p "${STAGE}"
+
+          BIN="target/${{ matrix.target }}/release/wireplant"
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            BIN="${BIN}.exe"
+            cp "${BIN}" "${STAGE}/"
+          else
+            strip "${BIN}" || true
+            cp "${BIN}" "${STAGE}/"
+          fi
+
+          cp README.md LICENSE-MIT LICENSE-APACHE "${STAGE}/"
+          cp -r scenarios "${STAGE}/"
+
+          if [ "${{ matrix.archive_ext }}" = "tar.gz" ]; then
+            tar -czf "${ARCHIVE}.tar.gz" -C "${STAGE}" .
+            echo "ASSET_FILE=${ARCHIVE}.tar.gz" >> $GITHUB_ENV
+          else
+            7z a "${ARCHIVE}.zip" "./${STAGE}/*"
+            echo "ASSET_FILE=${ARCHIVE}.zip" >> $GITHUB_ENV
+          fi
+
+      - name: Compute checksum
+        shell: bash
+        run: |
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            certutil -hashfile "${ASSET_FILE}" SHA256 | findstr /V "hash" > "${ASSET_FILE}.sha256"
+          else
+            shasum -a 256 "${ASSET_FILE}" > "${ASSET_FILE}.sha256"
+          fi
+
+      - name: Upload artifacts to runner
+        uses: actions/upload-artifact@v4
+        with:
+          name: binary-${{ matrix.target }}
+          path: |
+            ${{ env.ASSET_FILE }}
+            ${{ env.ASSET_FILE }}.sha256
+
+  publish-release:
+    name: Publish GitHub Release
+    needs: build-binaries
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all binary artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release_assets
+          merge-multiple: true
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.inputs.tag || github.ref_name }}
+          files: release_assets/*
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+
+  publish-docker:
+    name: Build & Push Container Image
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and push container
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

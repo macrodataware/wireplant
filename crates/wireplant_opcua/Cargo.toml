@@ -1,0 +1,28 @@
+[package]
+name = "wireplant_opcua"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+homepage.workspace = true
+repository.workspace = true
+description = "OPC-UA server and address space mapping for WirePlant"
+readme.workspace = true
+keywords.workspace = true
+categories.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+wireplant_core = { workspace = true }
+wireplant_config = { workspace = true }
+wireplant_engine = { workspace = true }
+async-opcua = { workspace = true, features = ["server"] }
+tokio = { workspace = true, features = ["sync", "time"] }
+tracing = { workspace = true }
+
+[dev-dependencies]
+toml = { workspace = true }

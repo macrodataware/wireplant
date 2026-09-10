@@ -1,0 +1,13 @@
+target/
+*.log
+.DS_Store
+
+# SQLite historian databases and journal files
+*.db
+*.db-shm
+*.db-wal
+wireplant_history.db
+
+# OPC-UA PKI runtime certificate and key directories
+pki/
+

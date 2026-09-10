@@ -1,0 +1,27 @@
+[package]
+name = "wireplant_modbus"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+homepage.workspace = true
+repository.workspace = true
+description = "Modbus TCP and RTU industrial protocol servers for WirePlant"
+readme.workspace = true
+keywords.workspace = true
+categories.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+wireplant_core = { workspace = true }
+tokio = { workspace = true, features = ["net", "sync", "io-util", "time"] }
+tokio-modbus = { workspace = true }
+tokio-serial = { workspace = true }
+tracing = { workspace = true }
+
+[dev-dependencies]
+tokio-modbus = { workspace = true, features = ["tcp", "tcp-server"] }

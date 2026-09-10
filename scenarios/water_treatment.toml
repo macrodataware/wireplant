@@ -1,0 +1,196 @@
+[facility]
+name = "ClearFlow Municipal Water Filtration Plant"
+description = "Three-stage drinking water clarification, chlorination, and distribution facility"
+tick_rate_ms = 100
+
+[memory]
+# Keep the floor generous so a SCADA client polling an address this scenario
+# never declares gets a zero rather than an out-of-range exception.
+min_table_registers = 1000
+padding_registers = 8
+
+[network.modbus]
+bind_addr = "0.0.0.0:5020"
+
+[network.opcua]
+enabled = true
+bind_addr = "0.0.0.0:4840"
+
+[network.http]
+bind_addr = "0.0.0.0:8080"
+
+[network.mqtt]
+broker_addr = "127.0.0.1:1883"
+enabled = true
+
+[[tags]]
+id = "raw_water_inlet_flow"
+description = "Raw water gravity intake flow"
+area = "holding_register"
+address = 100
+data_type = "float32"
+endianness = "word_swapped_big"
+units = "m³/h"
+waveform = { type = "sine", min = 120.0, max = 180.0, period_secs = 60.0 }
+
+[[tags]]
+id = "coagulant_dosing_rate"
+description = "Poly-aluminum chloride coagulant feed rate"
+area = "holding_register"
+address = 102
+data_type = "float32"
+endianness = "word_swapped_big"
+units = "mg/L"
+waveform = { type = "random_walk", center = 12.5, max_jitter = 1.5, drift_sigma = 0.05 }
+
+[[tags]]
+id = "clarifier_turbidity"
+description = "Settling basin effluent turbidity"
+area = "input_register"
+address = 200
+data_type = "float32"
+endianness = "word_swapped_big"
+units = "NTU"
+waveform = { type = "ramp", min = 0.5, max = 5.2, step_per_tick = 0.02 }
+
+[[tags]]
+id = "sand_filter_dp"
+description = "Rapid sand filter differential pressure"
+area = "input_register"
+address = 202
+data_type = "float32"
+endianness = "word_swapped_big"
+units = "kPa"
+waveform = { type = "triangle", min = 15.0, max = 95.0, period_secs = 120.0 }
+
+[[tags]]
+id = "chlorine_residual"
+description = "Contact tank free chlorine residual concentration"
+area = "holding_register"
+address = 104
+data_type = "float32"
+endianness = "word_swapped_big"
+units = "mg/L"
+waveform = { type = "sine", min = 1.2, max = 2.8, period_secs = 45.0 }
+
+[[tags]]
+id = "finished_water_ph"
+description = "Treated effluent pH measurement"
+area = "input_register"
+address = 204
+data_type = "float32"
+endianness = "word_swapped_big"
+units = "pH"
+waveform = { type = "random_walk", center = 7.35, max_jitter = 0.25, drift_sigma = 0.01 }
+
+[[tags]]
+id = "reservoir_level"
+description = "Clearwell treated water storage depth"
+area = "holding_register"
+address = 106
+data_type = "float32"
+endianness = "word_swapped_big"
+units = "m"
+waveform = { type = "triangle", min = 2.0, max = 8.5, period_secs = 180.0 }
+
+[[tags]]
+id = "distribution_flow"
+description = "High service finished water distribution flow"
+area = "input_register"
+address = 206
+data_type = "float32"
+endianness = "word_swapped_big"
+units = "m³/h"
+waveform = { type = "sine", min = 80.0, max = 160.0, period_secs = 90.0 }
+
+[[tags]]
+id = "header_pressure"
+description = "Municipal main discharge manifold pressure"
+area = "input_register"
+address = 208
+data_type = "float32"
+endianness = "word_swapped_big"
+units = "bar"
+waveform = { type = "random_walk", center = 4.8, max_jitter = 0.4, drift_sigma = 0.02 }
+
+[[tags]]
+id = "inlet_valve_cmd"
+description = "Raw water intake isolation motorized valve actuator"
+area = "coil"
+address = 1
+data_type = "boolean"
+waveform = { type = "constant", value = 1.0 }
+
+[[tags]]
+id = "pump_1_run_status"
+description = "High service booster pump 1 run auxiliary contact"
+area = "discrete_input"
+address = 1
+data_type = "boolean"
+waveform = { type = "constant", value = 1.0 }
+
+[[tags]]
+id = "backwash_valve_relay"
+description = "Automatic sand filter backwash initiation relay"
+area = "coil"
+address = 2
+data_type = "boolean"
+waveform = { type = "trip_threshold", source_tag = "sand_filter_dp", threshold = 85.0, inverted = false }
+
+[[tags]]
+id = "turbidity_high_alarm"
+description = "Sedimentation bypass diversion valve relay"
+area = "coil"
+address = 3
+data_type = "boolean"
+waveform = { type = "trip_threshold", source_tag = "clarifier_turbidity", threshold = 4.5, inverted = false }
+
+[[tags]]
+id = "chlorine_low_alarm"
+description = "Chlorine emergency feed pump interlock relay"
+area = "coil"
+address = 4
+data_type = "boolean"
+waveform = { type = "trip_threshold", source_tag = "chlorine_residual", threshold = 1.4, inverted = true }
+
+[[tags]]
+id = "ph_high_trip"
+description = "Acid injection emergency trim valve relay"
+area = "coil"
+address = 5
+data_type = "boolean"
+waveform = { type = "trip_threshold", source_tag = "finished_water_ph", threshold = 7.55, inverted = false }
+
+[[alarms]]
+id = "turbidity_effluent_hi"
+description = "Clarifier Effluent High Turbidity Excursion"
+source_tag = "clarifier_turbidity"
+alarm_type = "high"
+limit = 4.0
+deadband = 0.3
+severity = "high"
+on_delay_secs = 0.5
+off_delay_secs = 1.0
+latching = true
+active_coil_addr = 30
+unack_coil_addr = 31
+ack_coil_addr = 32
+reset_coil_addr = 33
+state_reg_addr = 70
+
+[[alarms]]
+id = "sand_filter_clogged"
+description = "Rapid Sand Filter High Differential Pressure"
+source_tag = "sand_filter_dp"
+alarm_type = "high"
+limit = 80.0
+deadband = 2.0
+severity = "critical"
+on_delay_secs = 1.0
+off_delay_secs = 2.0
+latching = true
+active_coil_addr = 34
+unack_coil_addr = 35
+ack_coil_addr = 36
+reset_coil_addr = 37
+state_reg_addr = 71
