@@ -18,13 +18,20 @@ if [[ "$MODE" != "--dry-run" && "$MODE" != "--publish" ]]; then
     exit 1
 fi
 
+# Extract current workspace package version dynamically from root Cargo.toml
+VERSION=$(cargo metadata --no-deps --format-version 1 | grep -o '"version":"[^"]*"' | head -n 1 | cut -d'"' -f4)
+
+if [[ -z "$VERSION" ]]; then
+    VERSION=$(grep -m 1 '^version = ' Cargo.toml | cut -d'"' -f2)
+fi
+
 FLAGS=""
 if [[ "$MODE" == "--dry-run" ]]; then
-    echo "=== Running in DRY-RUN mode (packages validated locally, nothing uploaded) ==="
+    echo "=== Running in DRY-RUN mode for v${VERSION} (packages validated locally, nothing uploaded) ==="
     FLAGS="--dry-run --allow-dirty"
 else
-    echo "=== RUNNING IN LIVE PUBLISH MODE ==="
-    read -p "Are you sure you want to publish WirePlant v0.1.0 to crates.io? (y/N) " -n 1 -r
+    echo "=== RUNNING IN LIVE PUBLISH MODE for v${VERSION} ==="
+    read -p "Are you sure you want to publish WirePlant v${VERSION} to crates.io? (y/N) " -n 1 -r
     echo
     if [[ ! $REPLY =~ ^[Yy]$ ]]; then
         echo "Aborted."
@@ -64,7 +71,7 @@ for CRATE in "${CRATES[@]}"; do
     fi
 
     echo "------------------------------------------------------------"
-    echo "Processing: $CRATE ($MODE)"
+    echo "Processing: $CRATE v${VERSION} ($MODE)"
     echo "------------------------------------------------------------"
 
     if [[ "$MODE" == "--dry-run" ]]; then
@@ -82,9 +89,16 @@ for CRATE in "${CRATES[@]}"; do
                 break
             fi
 
+            # If crate version is already published on crates.io, skip cleanly
+            if echo "$OUTPUT" | grep -qi "already uploaded"; then
+                echo "Crate $CRATE v${VERSION} is already published on crates.io. Skipping."
+                break
+            fi
+
+            # Crates.io rate limit (HTTP 429) backoff
             if echo "$OUTPUT" | grep -q "429 Too Many Requests"; then
                 echo "============================================================"
-                echo "Hit crates.io rate limit (status 429) on new crate $CRATE."
+                echo "Hit crates.io rate limit (status 429) on crate $CRATE."
                 echo "Waiting 600s (10 minutes) for token bucket to refill..."
                 echo "============================================================"
                 sleep 600

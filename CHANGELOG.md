@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.1] - 2026-10-12
+
+### Added
+- **Docs.rs Library Target**: Added `src/lib.rs` to top-level `wireplant` crate exposing orchestrator, CLI parser, exporter, and validation helpers as a library, resolving docs.rs compilation (`wireplant is not a library`).
+- **Docs.rs Configuration**: Added `[package.metadata.docs.rs]` enabling `all-features` and `--cfg docsrs`.
+
+### Fixed
+- **Publish Resilience**: Added resume support (`start_from_crate`) and exponential backoff on HTTP 429 rate limit errors to workspace publishing script.
+
 ## [0.1.0] - 2026-10-12
 
 ### Added

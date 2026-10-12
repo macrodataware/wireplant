@@ -3287,7 +3287,7 @@ dependencies = [
 
 [[package]]
 name = "wireplant"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "axum",
  "clap",
@@ -3311,7 +3311,7 @@ dependencies = [
 
 [[package]]
 name = "wireplant_api"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "axum",
  "serde",
@@ -3329,7 +3329,7 @@ dependencies = [
 
 [[package]]
 name = "wireplant_config"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "serde",
  "thiserror 2.0.21",
@@ -3340,7 +3340,7 @@ dependencies = [
 
 [[package]]
 name = "wireplant_core"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "proptest",
  "serde",
@@ -3350,7 +3350,7 @@ dependencies = [
 
 [[package]]
 name = "wireplant_engine"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "rand 0.9.5",
  "rand_distr",
@@ -3364,7 +3364,7 @@ dependencies = [
 
 [[package]]
 name = "wireplant_modbus"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "tokio",
  "tokio-modbus",
@@ -3375,7 +3375,7 @@ dependencies = [
 
 [[package]]
 name = "wireplant_mqtt"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "rumqttc",
  "serde",
@@ -3390,7 +3390,7 @@ dependencies = [
 
 [[package]]
 name = "wireplant_opcua"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "async-opcua",
  "thiserror 2.0.21",
@@ -3404,7 +3404,7 @@ dependencies = [
 
 [[package]]
 name = "wireplant_tui"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "crossterm",
  "futures",

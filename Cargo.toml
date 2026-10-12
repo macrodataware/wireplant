@@ -13,7 +13,7 @@ members = [
 ]
 
 [workspace.package]
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 license = "MIT OR Apache-2.0"
 rust-version = "1.89.0"
@@ -39,14 +39,14 @@ float_cmp = "allow"
 
 [workspace.dependencies]
 # Internal workspace crates
-wireplant_core = { path = "crates/wireplant_core", version = "0.1.0" }
-wireplant_engine = { path = "crates/wireplant_engine", version = "0.1.0" }
-wireplant_config = { path = "crates/wireplant_config", version = "0.1.0" }
-wireplant_modbus = { path = "crates/wireplant_modbus", version = "0.1.0" }
-wireplant_opcua = { path = "crates/wireplant_opcua", version = "0.1.0" }
-wireplant_mqtt = { path = "crates/wireplant_mqtt", version = "0.1.0" }
-wireplant_api = { path = "crates/wireplant_api", version = "0.1.0" }
-wireplant_tui = { path = "crates/wireplant_tui", version = "0.1.0" }
+wireplant_core = { path = "crates/wireplant_core", version = "0.1.1" }
+wireplant_engine = { path = "crates/wireplant_engine", version = "0.1.1" }
+wireplant_config = { path = "crates/wireplant_config", version = "0.1.1" }
+wireplant_modbus = { path = "crates/wireplant_modbus", version = "0.1.1" }
+wireplant_opcua = { path = "crates/wireplant_opcua", version = "0.1.1" }
+wireplant_mqtt = { path = "crates/wireplant_mqtt", version = "0.1.1" }
+wireplant_api = { path = "crates/wireplant_api", version = "0.1.1" }
+wireplant_tui = { path = "crates/wireplant_tui", version = "0.1.1" }
 
 # Async runtime & networking
 tokio = { version = "1.43", features = ["full"] }
