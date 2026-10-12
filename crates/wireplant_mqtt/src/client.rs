@@ -26,36 +26,70 @@ pub struct MqttPublisher {
     shared_memory: Option<SharedProcessImage>,
 }
 
+/// Fluent builder for constructing an [`MqttPublisher`].
+#[derive(Debug)]
+pub struct MqttPublisherBuilder {
+    scenario: ScenarioConfig,
+    broker_addr: String,
+    tick_rx: watch::Receiver<EngineTickEvent>,
+    client_id: Option<String>,
+    shared_memory: Option<SharedProcessImage>,
+}
+
+impl MqttPublisherBuilder {
+    pub fn new(
+        scenario: ScenarioConfig,
+        broker_addr: String,
+        tick_rx: watch::Receiver<EngineTickEvent>,
+    ) -> Self {
+        Self {
+            scenario,
+            broker_addr,
+            tick_rx,
+            client_id: None,
+            shared_memory: None,
+        }
+    }
+
+    pub fn with_client_id(mut self, client_id: Option<String>) -> Self {
+        self.client_id = client_id;
+        self
+    }
+
+    pub fn with_shared_memory(mut self, shared_memory: SharedProcessImage) -> Self {
+        self.shared_memory = Some(shared_memory);
+        self
+    }
+
+    pub fn build(self) -> MqttPublisher {
+        MqttPublisher {
+            scenario: self.scenario,
+            broker_addr: self.broker_addr,
+            client_id: self.client_id,
+            tick_rx: self.tick_rx,
+            shared_memory: self.shared_memory,
+        }
+    }
+}
+
 impl MqttPublisher {
+    pub fn builder(
+        scenario: ScenarioConfig,
+        broker_addr: String,
+        tick_rx: watch::Receiver<EngineTickEvent>,
+    ) -> MqttPublisherBuilder {
+        MqttPublisherBuilder::new(scenario, broker_addr, tick_rx)
+    }
+
     pub fn new(
         scenario: ScenarioConfig,
         broker_addr: String,
         client_id: Option<String>,
         tick_rx: watch::Receiver<EngineTickEvent>,
     ) -> Self {
-        Self {
-            scenario,
-            broker_addr,
-            client_id,
-            tick_rx,
-            shared_memory: None,
-        }
-    }
-
-    pub fn new_with_memory(
-        scenario: ScenarioConfig,
-        broker_addr: String,
-        client_id: Option<String>,
-        tick_rx: watch::Receiver<EngineTickEvent>,
-        shared_memory: SharedProcessImage,
-    ) -> Self {
-        Self {
-            scenario,
-            broker_addr,
-            client_id,
-            tick_rx,
-            shared_memory: Some(shared_memory),
-        }
+        Self::builder(scenario, broker_addr, tick_rx)
+            .with_client_id(client_id)
+            .build()
     }
 
     /// The MQTT client id: the operator's if they set one, the facility's name
@@ -188,39 +222,39 @@ pub async fn handle_incoming_command(
     payload: &[u8],
     scenario: &ScenarioConfig,
     memory: &SharedProcessImage,
-) -> Result<(), String> {
-    let cmd: MqttCommandPayload = serde_json::from_slice(payload)
-        .map_err(|e| format!("Malformed JSON on MQTT command topic: {e}"))?;
+) -> Result<(), crate::errors::MqttError> {
+    let cmd: MqttCommandPayload = serde_json::from_slice(payload)?;
 
-    let tag = scenario.tag(&cmd.tag_id).ok_or_else(|| {
-        format!(
-            "MQTT command target tag '{}' not found in scenario",
-            cmd.tag_id
-        )
-    })?;
+    let tag = scenario
+        .tag(&cmd.tag_id)
+        .ok_or_else(|| crate::errors::MqttError::TagNotFound(cmd.tag_id.clone()))?;
 
     // In industrial hardware, external clients cannot write to sensor inputs (1x / 3x).
     match tag.area {
         MemoryArea::Coil | MemoryArea::HoldingRegister => {}
         MemoryArea::DiscreteInput | MemoryArea::InputRegister => {
-            let msg = format!(
+            warn!(
                 "Refusing MQTT write to tag '{}': {} is a read-only hardware input",
                 tag.id,
                 tag.area.as_str()
             );
-            warn!("{msg}");
-            return Err(msg);
+            return Err(crate::errors::MqttError::ReadOnlyArea {
+                tag_id: tag.id.clone(),
+                area: tag.area.as_str(),
+            });
         }
     }
 
     let mut mem = memory.write().await;
     encode_tag(&mut mem, tag, cmd.value).map_err(|e| {
-        let msg = format!(
+        error!(
             "Failed to encode tag '{}' from MQTT command: {e}",
             cmd.tag_id
         );
-        error!("{msg}");
-        msg
+        crate::errors::MqttError::EncodingError {
+            tag_id: cmd.tag_id.clone(),
+            source: e,
+        }
     })?;
 
     info!("MQTT command applied: tag '{}' = {}", cmd.tag_id, cmd.value);
@@ -407,13 +441,17 @@ mod tests {
         // 2. Rejected write to input register (sensor read-only)
         let invalid_area_payload = br#"{"tag_id":"sensor","value":99.0}"#;
         let res = handle_incoming_command(invalid_area_payload, &scenario, &memory).await;
-        assert!(res.is_err(), "Input register command must be rejected");
-        assert!(res.unwrap_err().contains("read-only"));
+        assert!(matches!(
+            res.unwrap_err(),
+            crate::errors::MqttError::ReadOnlyArea { .. }
+        ));
 
         // 3. Rejected write to unknown tag
         let unknown_tag_payload = br#"{"tag_id":"nonexistent","value":1.0}"#;
         let res = handle_incoming_command(unknown_tag_payload, &scenario, &memory).await;
-        assert!(res.is_err(), "Unknown tag must be rejected");
-        assert!(res.unwrap_err().contains("not found"));
+        assert!(matches!(
+            res.unwrap_err(),
+            crate::errors::MqttError::TagNotFound(_)
+        ));
     }
 }

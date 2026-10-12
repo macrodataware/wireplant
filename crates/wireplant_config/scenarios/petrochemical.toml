@@ -1,0 +1,172 @@
+[facility]
+name = "Gulf Coast Refinery - Unit 12 Fluid Catalytic Cracker"
+description = "Fluid catalytic cracking reactor, catalyst regenerator, and main fractionator distillation column"
+tick_rate_ms = 50
+
+[memory]
+# Keep the floor generous so a SCADA client polling an address this scenario
+# never declares gets a zero rather than an out-of-range exception.
+min_table_registers = 1000
+padding_registers = 8
+
+[network.modbus]
+bind_addr = "0.0.0.0:5020"
+
+[network.opcua]
+enabled = true
+bind_addr = "0.0.0.0:4840"
+
+[network.http]
+bind_addr = "0.0.0.0:8080"
+
+[network.mqtt]
+broker_addr = "127.0.0.1:1883"
+enabled = true
+
+[[tags]]
+id = "riser_feed_flow"
+description = "Heavy gas oil charge rate to reactor riser"
+area = "holding_register"
+address = 100
+data_type = "float32"
+endianness = "word_swapped_big"
+units = "BPD"
+waveform = { type = "sine", min = 42000.0, max = 48000.0, period_secs = 120.0 }
+
+[[tags]]
+id = "riser_top_temperature"
+description = "Cracking reaction riser outlet mix temperature"
+area = "input_register"
+address = 300
+data_type = "float32"
+endianness = "word_swapped_big"
+units = "°C"
+waveform = { type = "random_walk", center = 535.0, max_jitter = 12.0, drift_sigma = 0.3 }
+
+[[tags]]
+id = "regenerator_bed_temp"
+description = "Coke combustion fluid bed temperature"
+area = "input_register"
+address = 302
+data_type = "float32"
+endianness = "word_swapped_big"
+units = "°C"
+waveform = { type = "sine", min = 690.0, max = 730.0, period_secs = 90.0 }
+
+[[tags]]
+id = "flue_gas_pressure"
+description = "Combustion exhaust flue manifold pressure"
+area = "input_register"
+address = 304
+data_type = "float32"
+endianness = "word_swapped_big"
+units = "psig"
+waveform = { type = "random_walk", center = 32.5, max_jitter = 2.0, drift_sigma = 0.1 }
+
+[[tags]]
+id = "cyclone_dp"
+description = "Tertiary separator catalyst recovery cyclone differential pressure"
+area = "input_register"
+address = 306
+data_type = "float32"
+endianness = "word_swapped_big"
+units = "psi"
+waveform = { type = "ramp", min = 3.0, max = 9.5, step_per_tick = 0.05 }
+
+[[tags]]
+id = "spent_cat_valve"
+description = "Spent catalyst stripper slide valve stroke opening"
+area = "holding_register"
+address = 102
+data_type = "float32"
+endianness = "word_swapped_big"
+units = "%"
+waveform = { type = "triangle", min = 35.0, max = 75.0, period_secs = 60.0 }
+
+[[tags]]
+id = "regen_cat_valve"
+description = "Hot regenerated catalyst return slide valve stroke opening"
+area = "holding_register"
+address = 104
+data_type = "float32"
+endianness = "word_swapped_big"
+units = "%"
+waveform = { type = "triangle", min = 40.0, max = 80.0, period_secs = 60.0 }
+
+[[tags]]
+id = "fractionator_pressure"
+description = "Main distillation fractionator overhead vapor drum pressure"
+area = "input_register"
+address = 308
+data_type = "float32"
+endianness = "word_swapped_big"
+units = "psig"
+waveform = { type = "random_walk", center = 18.2, max_jitter = 1.0, drift_sigma = 0.05 }
+
+[[tags]]
+id = "fractionator_bottoms_temp"
+description = "Slurry oil reboiler circulation temperature"
+area = "input_register"
+address = 310
+data_type = "float32"
+endianness = "word_swapped_big"
+units = "°C"
+waveform = { type = "sine", min = 340.0, max = 365.0, period_secs = 75.0 }
+
+[[tags]]
+id = "wet_gas_flow"
+description = "Unstabilized cracked gas compressor suction volumetric flow"
+area = "input_register"
+address = 312
+data_type = "float32"
+endianness = "word_swapped_big"
+units = "MSCFD"
+waveform = { type = "sine", min = 18000.0, max = 22500.0, period_secs = 110.0 }
+
+[[tags]]
+id = "emergency_steam_quench"
+description = "Thermal runaway riser emergency steam injection shutoff valve"
+area = "coil"
+address = 10
+data_type = "boolean"
+waveform = { type = "trip_threshold", source_tag = "riser_top_temperature", threshold = 545.0, inverted = false }
+
+[[tags]]
+id = "regenerator_deluge"
+description = "Combustion excursion bed cooling water deluge solenoid"
+area = "coil"
+address = 11
+data_type = "boolean"
+waveform = { type = "trip_threshold", source_tag = "regenerator_bed_temp", threshold = 725.0, inverted = false }
+
+[[tags]]
+id = "overpressure_vent"
+description = "Regenerator flue gas emergency dump valve"
+area = "coil"
+address = 12
+data_type = "boolean"
+waveform = { type = "trip_threshold", source_tag = "flue_gas_pressure", threshold = 34.0, inverted = false }
+
+[[tags]]
+id = "slide_valve_lockout"
+description = "Catalyst cyclone carryover emergency slide valve hydraulic lock"
+area = "coil"
+address = 13
+data_type = "boolean"
+waveform = { type = "trip_threshold", source_tag = "cyclone_dp", threshold = 9.0, inverted = false }
+
+[[tags]]
+id = "esd_permissive"
+description = "Unit safety instrumented system permissive healthy loop"
+area = "discrete_input"
+address = 10
+data_type = "boolean"
+waveform = { type = "constant", value = 1.0 }
+
+[[tags]]
+id = "compressor_lube_oil_low"
+description = "Wet gas compressor bearing lube oil low pressure switch contact"
+area = "discrete_input"
+address = 11
+data_type = "boolean"
+waveform = { type = "constant", value = 0.0 }

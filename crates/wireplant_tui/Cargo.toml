@@ -11,7 +11,7 @@ description = "Terminal user interface for interactive monitoring and control of
 readme.workspace = true
 keywords.workspace = true
 categories.workspace = true
-publish = false
+documentation = "https://docs.rs/wireplant_tui"
 
 [lints]
 workspace = true
@@ -26,3 +26,4 @@ futures = { workspace = true }
 tokio = { workspace = true, features = ["sync", "time"] }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
+thiserror = { workspace = true }

@@ -32,7 +32,7 @@ impl ThermalProcess {
             return self.current_temp_c;
         }
 
-        let q_in = heater_duty.clamp(0.0, 1.0) * self.config.max_heating_power_watts;
+        let q_in = heater_duty * self.config.max_heating_power_watts;
         let c = self.config.heat_capacity_j_k;
         let k = self.config.heat_loss_coeff_w_k;
         let t_amb = self.config.ambient_temp_c;

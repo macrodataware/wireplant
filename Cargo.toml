@@ -9,7 +9,7 @@ members = [
     "crates/wireplant_mqtt",
     "crates/wireplant_api",
     "crates/wireplant_tui",
-    "crates/wireplant_cli",
+    "crates/wireplant",
 ]
 
 [workspace.package]
@@ -84,6 +84,10 @@ futures = "0.3"
 [workspace.metadata.cargo-machete]
 # `async-opcua` is imported as `opcua`, which cargo-machete cannot see through.
 ignored = ["async-opcua"]
+
+[workspace.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
 
 [profile.release]
 # Panic unwinding MUST be preserved (do NOT add panic = "abort").

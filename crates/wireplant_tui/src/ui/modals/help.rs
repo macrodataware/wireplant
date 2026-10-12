@@ -1,17 +1,13 @@
 use ratatui::layout::Alignment;
 use ratatui::style::Style;
 use ratatui::text::{Line, Span};
-use ratatui::widgets::{Block, Borders, Clear, Paragraph};
 use ratatui::Frame;
 
-use crate::ui::common::centered_rect;
+use crate::ui::common::render_dialog_box;
 use crate::ui::theme::Theme;
 
 /// Global Hotkey and Navigation Help Modal.
 pub fn draw(f: &mut Frame) {
-    let area = centered_rect(70, 70, f.area());
-    f.render_widget(Clear, area);
-
     let text = vec![
         Line::from(vec![
             Span::styled("Global Navigation: ", Style::default().fg(Theme::PRIMARY)),
@@ -65,12 +61,13 @@ pub fn draw(f: &mut Frame) {
         )),
     ];
 
-    let modal = Paragraph::new(text).alignment(Alignment::Left).block(
-        Block::default()
-            .borders(Borders::ALL)
-            .title(" Keyboard & Operator Command Reference ([Esc] Close) ")
-            .border_style(Style::default().fg(Theme::SECONDARY)),
+    render_dialog_box(
+        f,
+        70,
+        70,
+        "Keyboard & Operator Command Reference ([Esc] Close)",
+        Style::default().fg(Theme::SECONDARY),
+        text,
+        Alignment::Left,
     );
-
-    f.render_widget(modal, area);
 }

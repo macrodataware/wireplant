@@ -105,8 +105,9 @@ impl PlantMemory {
         start: usize,
         count: usize,
     ) -> Result<&[u16], CoreError> {
-        let span = WordSpan::checked(area, self.register_table(area)?.len(), start, count)?;
-        Ok(&self.register_table(area)?[span.range()])
+        let table = self.register_table(area)?;
+        let span = WordSpan::checked(area, table.len(), start, count)?;
+        Ok(&table[span.range()])
     }
 
     /// Write `words` over the registers starting at `address`.
@@ -120,7 +121,8 @@ impl PlantMemory {
         address: usize,
         words: &[u16],
     ) -> Result<(), CoreError> {
-        let span = WordSpan::checked(area, self.register_table(area)?.len(), address, words.len())?;
+        let capacity = self.register_table(area)?.len();
+        let span = WordSpan::checked(area, capacity, address, words.len())?;
         let table = self.register_table_mut(area)?;
         table[span.range()].copy_from_slice(words);
         Ok(())

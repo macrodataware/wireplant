@@ -1,10 +1,9 @@
 use ratatui::layout::Alignment;
 use ratatui::style::Style;
 use ratatui::text::{Line, Span};
-use ratatui::widgets::{Block, Borders, Clear, Paragraph};
 use ratatui::Frame;
 
-use crate::ui::common::centered_rect;
+use crate::ui::common::render_dialog_box;
 use crate::ui::theme::Theme;
 
 /// Centered floating modal popup for overriding a tag value.
@@ -15,9 +14,6 @@ pub fn draw(
     duration_buffer: &str,
     is_discrete: bool,
 ) {
-    let area = centered_rect(55, 30, f.area());
-    f.render_widget(Clear, area);
-
     let prompt = if is_discrete {
         "Enter 1 for ON, 0 for OFF:"
     } else {
@@ -60,12 +56,13 @@ pub fn draw(
         )),
     ];
 
-    let modal = Paragraph::new(text).alignment(Alignment::Center).block(
-        Block::default()
-            .borders(Borders::ALL)
-            .title(" Manual Override Value Prompt ")
-            .border_style(Theme::bold_magenta()),
+    render_dialog_box(
+        f,
+        55,
+        30,
+        "Manual Override Value Prompt",
+        Theme::bold_magenta(),
+        text,
+        Alignment::Center,
     );
-
-    f.render_widget(modal, area);
 }

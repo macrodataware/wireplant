@@ -11,7 +11,7 @@ description = "Simulation ticker, process models (PID, Tank, Thermal), waveforms
 readme.workspace = true
 keywords.workspace = true
 categories.workspace = true
-publish = false
+documentation = "https://docs.rs/wireplant_engine"
 
 [lints]
 workspace = true

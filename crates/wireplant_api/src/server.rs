@@ -30,51 +30,96 @@ pub struct ApiServer {
     engine_liveness: Option<Arc<AtomicBool>>,
 }
 
-impl ApiServer {
+/// Fluent builder for configuring and assembling an [`ApiServer`].
+#[derive(Debug)]
+pub struct ApiServerBuilder {
+    scenario: ScenarioConfig,
+    shared_memory: SharedProcessImage,
+    sessions: SessionCounter,
+    alarms: Option<AlarmManager>,
+    overrides: Option<SharedOverrides>,
+    historian: Option<Arc<Historian>>,
+    engine_liveness: Option<Arc<AtomicBool>>,
+}
+
+impl ApiServerBuilder {
+    /// Initializes a builder with the required scenario, process image, and session counter.
     pub fn new(
         scenario: ScenarioConfig,
         shared_memory: SharedProcessImage,
         sessions: SessionCounter,
     ) -> Self {
-        let alarms = AlarmManager::from_configs(&scenario.alarms);
-        Self::new_with_alarms(scenario, shared_memory, sessions, alarms)
-    }
-
-    pub fn new_with_alarms(
-        scenario: ScenarioConfig,
-        shared_memory: SharedProcessImage,
-        sessions: SessionCounter,
-        alarms: AlarmManager,
-    ) -> Self {
         Self {
             scenario,
             shared_memory,
             sessions,
-            alarms,
-            overrides: create_shared_overrides(),
+            alarms: None,
+            overrides: None,
             historian: None,
             engine_liveness: None,
         }
     }
 
-    pub fn new_with_all(
+    /// Attaches an existing alarm manager. When omitted, builds one from `scenario.alarms`.
+    pub fn with_alarms(mut self, alarms: AlarmManager) -> Self {
+        self.alarms = Some(alarms);
+        self
+    }
+
+    /// Attaches a shared overrides registry. When omitted, creates a new empty registry.
+    pub fn with_overrides(mut self, overrides: SharedOverrides) -> Self {
+        self.overrides = Some(overrides);
+        self
+    }
+
+    /// Attaches an optional SQLite historian persistence handle.
+    pub fn with_historian(mut self, historian: Option<Arc<Historian>>) -> Self {
+        self.historian = historian;
+        self
+    }
+
+    /// Attaches an engine liveness heartbeat flag for HTTP healthcheck probes.
+    pub fn with_engine_liveness(mut self, engine_liveness: Option<Arc<AtomicBool>>) -> Self {
+        self.engine_liveness = engine_liveness;
+        self
+    }
+
+    /// Assembles the [`ApiServer`].
+    pub fn build(self) -> ApiServer {
+        let alarms = self
+            .alarms
+            .unwrap_or_else(|| AlarmManager::from_configs(&self.scenario.alarms));
+        let overrides = self.overrides.unwrap_or_else(create_shared_overrides);
+
+        ApiServer {
+            scenario: self.scenario,
+            shared_memory: self.shared_memory,
+            sessions: self.sessions,
+            alarms,
+            overrides,
+            historian: self.historian,
+            engine_liveness: self.engine_liveness,
+        }
+    }
+}
+
+impl ApiServer {
+    /// Returns a fluent builder for configuring and creating an [`ApiServer`].
+    pub fn builder(
         scenario: ScenarioConfig,
         shared_memory: SharedProcessImage,
         sessions: SessionCounter,
-        alarms: AlarmManager,
-        overrides: SharedOverrides,
-        historian: Option<Arc<Historian>>,
-        engine_liveness: Option<Arc<AtomicBool>>,
+    ) -> ApiServerBuilder {
+        ApiServerBuilder::new(scenario, shared_memory, sessions)
+    }
+
+    /// Constructs an [`ApiServer`] with default alarm manager and fresh overrides.
+    pub fn new(
+        scenario: ScenarioConfig,
+        shared_memory: SharedProcessImage,
+        sessions: SessionCounter,
     ) -> Self {
-        Self {
-            scenario,
-            shared_memory,
-            sessions,
-            alarms,
-            overrides,
-            historian,
-            engine_liveness,
-        }
+        Self::builder(scenario, shared_memory, sessions).build()
     }
 
     pub fn with_overrides(mut self, overrides: SharedOverrides) -> Self {

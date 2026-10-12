@@ -11,7 +11,7 @@ description = "Modbus TCP and RTU industrial protocol servers for WirePlant"
 readme.workspace = true
 keywords.workspace = true
 categories.workspace = true
-publish = false
+documentation = "https://docs.rs/wireplant_modbus"
 
 [lints]
 workspace = true

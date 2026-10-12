@@ -4,6 +4,19 @@ use wireplant_core::types::MemoryArea;
 use super::types::{ActiveTab, TagAreaFilter};
 use super::TuiApp;
 
+/// Pure helper to step a selection index within `[0, total - 1]`.
+pub fn clamp_step(current: usize, delta: isize, total: usize) -> usize {
+    if total == 0 {
+        return 0;
+    }
+    let max_idx = total.saturating_sub(1);
+    if delta < 0 {
+        current.saturating_sub(delta.unsigned_abs())
+    } else {
+        (current + delta as usize).min(max_idx)
+    }
+}
+
 impl TuiApp {
     /// Moves to the next tab in circular order.
     pub fn tab_next(&mut self) {
@@ -47,30 +60,26 @@ impl TuiApp {
     }
 
     pub fn select_up(&mut self) {
-        if self.selected_tag_index > 0 {
-            self.selected_tag_index -= 1;
-            self.tag_table_state.select(Some(self.selected_tag_index));
-        }
+        let total = self.filtered_tags().len();
+        self.selected_tag_index = clamp_step(self.selected_tag_index, -1, total);
+        self.tag_table_state.select(Some(self.selected_tag_index));
     }
 
     pub fn select_down(&mut self) {
         let total = self.filtered_tags().len();
-        if total > 0 && self.selected_tag_index + 1 < total {
-            self.selected_tag_index += 1;
-            self.tag_table_state.select(Some(self.selected_tag_index));
-        }
+        self.selected_tag_index = clamp_step(self.selected_tag_index, 1, total);
+        self.tag_table_state.select(Some(self.selected_tag_index));
     }
 
     pub fn select_page_down(&mut self) {
         let total = self.filtered_tags().len();
-        if total > 0 {
-            self.selected_tag_index = (self.selected_tag_index + 10).min(total - 1);
-            self.tag_table_state.select(Some(self.selected_tag_index));
-        }
+        self.selected_tag_index = clamp_step(self.selected_tag_index, 10, total);
+        self.tag_table_state.select(Some(self.selected_tag_index));
     }
 
     pub fn select_page_up(&mut self) {
-        self.selected_tag_index = self.selected_tag_index.saturating_sub(10);
+        let total = self.filtered_tags().len();
+        self.selected_tag_index = clamp_step(self.selected_tag_index, -10, total);
         self.tag_table_state.select(Some(self.selected_tag_index));
     }
 

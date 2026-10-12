@@ -1,0 +1,114 @@
+[facility]
+name = "Hydroelectric Substation 04"
+description = "Default simulated Pelton turbine hydroelectric plant"
+tick_rate_ms = 100
+
+[memory]
+# Keep the floor generous so a SCADA client polling an address this scenario
+# never declares gets a zero rather than an out-of-range exception.
+min_table_registers = 1000
+padding_registers = 8
+
+[network.modbus]
+bind_addr = "0.0.0.0:5020"
+
+[network.opcua]
+enabled = true
+bind_addr = "0.0.0.0:4840"
+
+[network.http]
+bind_addr = "0.0.0.0:8080"
+
+[network.mqtt]
+broker_addr = "127.0.0.1:1883"
+enabled = false
+
+[[tags]]
+id = "penstock_pressure_psi"
+description = "Inlet water pressure from mountain reservoir"
+area = "holding_register"
+address = 100
+data_type = "float32"
+endianness = "word_swapped_big"
+units = "PSI"
+waveform = { type = "sine", min = 120.0, max = 185.0, period_secs = 20.0 }
+
+[[tags]]
+id = "turbine_rpm"
+description = "Pelton wheel rotational velocity"
+area = "holding_register"
+address = 102
+data_type = "float32"
+endianness = "word_swapped_big"
+units = "RPM"
+waveform = { type = "random_walk", center = 1800.0, max_jitter = 15.0, drift_sigma = 0.5 }
+
+[[tags]]
+id = "bearing_temp_c"
+description = "Main generator bearing temperature"
+area = "input_register"
+address = 50
+data_type = "float32"
+endianness = "word_swapped_big"
+units = "°C"
+waveform = { type = "ramp", min = 40.0, max = 85.0, step_per_tick = 0.05 }
+
+[[tags]]
+id = "emergency_cutoff_relay"
+description = "Latching emergency shutoff coil"
+area = "coil"
+address = 1
+data_type = "boolean"
+waveform = { type = "trip_threshold", source_tag = "penstock_pressure_psi", threshold = 180.0, inverted = false }
+
+[[fault_profiles]]
+id = "overpressure_surge"
+name = "Penstock Overpressure Emergency"
+description = "Forces inlet pressure to 195 PSI, triggering the emergency cutoff coil"
+actions = [
+    { target_tag = "penstock_pressure_psi", force_value = 195.0, duration_secs = 10.0 }
+]
+
+[[fault_profiles]]
+id = "bearing_overheat"
+name = "Bearing Thermal Runaway"
+description = "Spikes generator bearing temperature to 95°C"
+actions = [
+    { target_tag = "bearing_temp_c", force_value = 95.0 }
+]
+
+[[alarms]]
+id = "penstock_hi"
+description = "Penstock High Hydraulic Surge Pressure"
+source_tag = "penstock_pressure_psi"
+alarm_type = "high"
+limit = 175.0
+deadband = 3.0
+severity = "high"
+on_delay_secs = 0.5
+off_delay_secs = 1.0
+latching = true
+max_shelve_duration_secs = 3600.0
+active_coil_addr = 20
+unack_coil_addr = 21
+ack_coil_addr = 22
+reset_coil_addr = 23
+state_reg_addr = 60
+
+[[alarms]]
+id = "bearing_hi"
+description = "Main Bearing High Temperature Warning"
+source_tag = "bearing_temp_c"
+alarm_type = "high"
+limit = 78.0
+deadband = 1.5
+severity = "critical"
+on_delay_secs = 1.0
+off_delay_secs = 2.0
+latching = false
+max_shelve_duration_secs = 1800.0
+active_coil_addr = 24
+unack_coil_addr = 25
+ack_coil_addr = 26
+reset_coil_addr = 27
+state_reg_addr = 61

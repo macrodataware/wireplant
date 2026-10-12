@@ -46,12 +46,13 @@ async fn the_closed_loop_plant_fills_once_the_inlet_valve_opens() {
 
     let (shutdown_tx, _) = broadcast::channel::<()>(1);
 
-    let (engine, _) = SimulationEngine::new_with_processes(
-        bindings,
-        processes,
+    let (engine, _) = SimulationEngine::builder(
         shared_memory.clone(),
         scenario.facility.tick_rate_ms,
-    );
+    )
+    .with_bindings(bindings)
+    .with_processes(processes)
+    .build();
     let engine_cancel = shutdown_tx.subscribe();
     let engine_handle = tokio::spawn(async move {
         engine.run(engine_cancel).await;

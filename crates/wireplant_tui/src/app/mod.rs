@@ -313,9 +313,11 @@ impl TuiApp {
             AppMode::FaultProfileMenu { selected_index } => {
                 let profiles = self.scenario.fault_profiles.len();
                 match code {
-                    KeyCode::Up => *selected_index = selected_index.saturating_sub(1),
-                    KeyCode::Down if profiles > 0 && *selected_index + 1 < profiles => {
-                        *selected_index += 1;
+                    KeyCode::Up => {
+                        *selected_index = navigation::clamp_step(*selected_index, -1, profiles)
+                    }
+                    KeyCode::Down => {
+                        *selected_index = navigation::clamp_step(*selected_index, 1, profiles)
                     }
                     KeyCode::Enter => {
                         let index = *selected_index;
@@ -481,27 +483,37 @@ impl TuiApp {
                     KeyCode::Up => {
                         self.log_auto_scroll = false;
                         let cur = self.log_table_state.selected().unwrap_or(0);
-                        self.log_table_state.select(Some(cur.saturating_sub(1)));
+                        self.log_table_state.select(Some(navigation::clamp_step(
+                            cur,
+                            -1,
+                            self.log_entries.len(),
+                        )));
                     }
                     KeyCode::Down => {
                         let cur = self.log_table_state.selected().unwrap_or(0);
-                        let total = self.log_entries.len();
-                        if total > 0 && cur + 1 < total {
-                            self.log_table_state.select(Some(cur + 1));
-                        }
+                        self.log_table_state.select(Some(navigation::clamp_step(
+                            cur,
+                            1,
+                            self.log_entries.len(),
+                        )));
                     }
                     KeyCode::PageUp => {
                         self.log_auto_scroll = false;
                         let cur = self.log_table_state.selected().unwrap_or(0);
-                        self.log_table_state.select(Some(cur.saturating_sub(10)));
+                        self.log_table_state.select(Some(navigation::clamp_step(
+                            cur,
+                            -10,
+                            self.log_entries.len(),
+                        )));
                     }
                     KeyCode::PageDown => {
                         self.log_auto_scroll = false;
                         let cur = self.log_table_state.selected().unwrap_or(0);
-                        let total = self.log_entries.len();
-                        if total > 0 {
-                            self.log_table_state.select(Some((cur + 10).min(total - 1)));
-                        }
+                        self.log_table_state.select(Some(navigation::clamp_step(
+                            cur,
+                            10,
+                            self.log_entries.len(),
+                        )));
                     }
                     KeyCode::Home => {
                         self.log_auto_scroll = false;

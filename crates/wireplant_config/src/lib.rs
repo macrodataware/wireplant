@@ -1,4 +1,7 @@
-//! Declarative configuration and validation engine for WirePlant.
+//! # WirePlant Config (`wireplant_config`)
+//!
+//! Declarative scenario TOML parsing, semantic validation, address overlap detection,
+//! and Process Image table sizing for WirePlant.
 
 pub mod defaults;
 pub mod errors;
@@ -84,17 +87,17 @@ mod tests {
     fn the_bundled_scenario_files_parse() {
         let cases = [
             (
-                include_str!("../../../scenarios/water_treatment.toml"),
+                include_str!("../scenarios/water_treatment.toml"),
                 "ClearFlow Municipal Water Filtration Plant",
                 15,
             ),
             (
-                include_str!("../../../scenarios/petrochemical.toml"),
+                include_str!("../scenarios/petrochemical.toml"),
                 "Gulf Coast Refinery - Unit 12 Fluid Catalytic Cracker",
                 16,
             ),
             (
-                include_str!("../../../scenarios/default_hydro.toml"),
+                include_str!("../scenarios/default_hydro.toml"),
                 "Hydroelectric Substation 04",
                 4,
             ),

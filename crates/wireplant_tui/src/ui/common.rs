@@ -67,3 +67,28 @@ pub fn centered_rect(percent_x: u16, percent_y: u16, r: Rect) -> Rect {
         ])
         .split(popup_layout[1])[1]
 }
+
+/// Renders a centered floating modal dialog with an opaque background.
+pub fn render_dialog_box(
+    f: &mut ratatui::Frame,
+    percent_x: u16,
+    percent_y: u16,
+    title: &str,
+    border_style: ratatui::style::Style,
+    lines: Vec<ratatui::text::Line>,
+    alignment: ratatui::layout::Alignment,
+) {
+    let area = centered_rect(percent_x, percent_y, f.area());
+    f.render_widget(ratatui::widgets::Clear, area);
+
+    let modal = ratatui::widgets::Paragraph::new(lines)
+        .alignment(alignment)
+        .block(
+            ratatui::widgets::Block::default()
+                .borders(ratatui::widgets::Borders::ALL)
+                .title(format!(" {title} "))
+                .border_style(border_style),
+        );
+
+    f.render_widget(modal, area);
+}

@@ -21,10 +21,7 @@ pub struct TankProcess {
 
 impl TankProcess {
     pub fn new(config: TankModelConfig) -> Self {
-        let initial_level = config
-            .initial_level_m
-            .unwrap_or(0.0)
-            .clamp(0.0, config.max_height_m);
+        let initial_level = config.initial_level_m.unwrap_or(0.0);
         let initial_volume = initial_level * config.surface_area_m2;
         Self {
             config,
@@ -39,12 +36,12 @@ impl TankProcess {
             return self.current_level_m;
         }
 
-        let q_in = inlet_cmd.clamp(0.0, 1.0) * self.config.max_inflow_m3_s;
+        let q_in = inlet_cmd * self.config.max_inflow_m3_s;
 
         // Torricelli / gravity drain component + forced pump drain
-        let gravity_head = (2.0 * 9.81 * self.current_level_m.max(0.0)).sqrt();
+        let gravity_head = (2.0 * 9.81 * self.current_level_m).sqrt();
         let q_gravity = self.config.gravity_drain_coeff * gravity_head;
-        let q_pump = drain_cmd.clamp(0.0, 1.0) * self.config.max_outflow_m3_s;
+        let q_pump = drain_cmd * self.config.max_outflow_m3_s;
         let q_out = q_gravity + q_pump;
 
         let delta_v = (q_in - q_out) * dt_secs;

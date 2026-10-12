@@ -11,7 +11,7 @@ description = "Core memory model, endianness codec, and data types for WirePlant
 readme.workspace = true
 keywords.workspace = true
 categories.workspace = true
-publish = false
+documentation = "https://docs.rs/wireplant_core"
 
 [lints]
 workspace = true

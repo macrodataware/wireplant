@@ -243,8 +243,10 @@ async fn a_coupled_tank_thermal_and_pid_loop_settles() {
         ),
     ];
 
-    let (mut engine, _event_rx) =
-        SimulationEngine::new_with_processes(bindings, processes, Arc::clone(&memory), 100);
+    let (mut engine, _event_rx) = SimulationEngine::builder(Arc::clone(&memory), 100)
+        .with_bindings(bindings)
+        .with_processes(processes)
+        .build();
 
     // In WirePlant's architecture, process actuator inputs are operator-owned:
     // the ticker reads them from shared memory (not waveform generator).

@@ -257,7 +257,7 @@ crates/
 ├── wireplant_mqtt/      # rumqttc publisher and JSON payload
 ├── wireplant_api/       # Axum REST API with auth middleware and historian query endpoint
 ├── wireplant_tui/       # Ratatui 7-tab industrial operations dashboard
-└── wireplant_cli/       # The `wireplant` binary: clap args, validator, orchestrator, shutdown
+└── wireplant/           # The `wireplant` binary: clap args, validator, orchestrator, shutdown
 ```
 
 ## The dashboard

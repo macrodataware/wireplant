@@ -1,17 +1,13 @@
 use ratatui::layout::Alignment;
 use ratatui::style::Style;
 use ratatui::text::{Line, Span};
-use ratatui::widgets::{Block, Borders, Clear, Paragraph};
 use ratatui::Frame;
 
-use crate::ui::common::centered_rect;
+use crate::ui::common::render_dialog_box;
 use crate::ui::theme::Theme;
 
 /// Modal for shelving an alarm with custom duration.
 pub fn draw(f: &mut Frame, alarm_id: &str, duration_buffer: &str) {
-    let area = centered_rect(50, 25, f.area());
-    f.render_widget(Clear, area);
-
     let text = vec![
         Line::from(vec![
             Span::styled("Alarm: ", Style::default().fg(Theme::SECONDARY)),
@@ -40,12 +36,13 @@ pub fn draw(f: &mut Frame, alarm_id: &str, duration_buffer: &str) {
         )),
     ];
 
-    let modal = Paragraph::new(text).alignment(Alignment::Center).block(
-        Block::default()
-            .borders(Borders::ALL)
-            .title(" Shelve Alarm Duration Prompt ")
-            .border_style(Style::default().fg(Theme::SECONDARY)),
+    render_dialog_box(
+        f,
+        50,
+        25,
+        "Shelve Alarm Duration Prompt",
+        Style::default().fg(Theme::SECONDARY),
+        text,
+        Alignment::Center,
     );
-
-    f.render_widget(modal, area);
 }

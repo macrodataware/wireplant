@@ -177,15 +177,13 @@ impl Orchestrator {
 
         if scenario.network.http.enabled {
             let listener = bind(&scenario.network.http.bind_addr).await?;
-            let api_server = ApiServer::new_with_all(
-                scenario.clone(),
-                shared_memory.clone(),
-                sessions.clone(),
-                alarms.clone(),
-                shared_overrides.clone(),
-                historian.clone(),
-                Some(engine_liveness.clone()),
-            );
+            let api_server =
+                ApiServer::builder(scenario.clone(), shared_memory.clone(), sessions.clone())
+                    .with_alarms(alarms.clone())
+                    .with_overrides(shared_overrides.clone())
+                    .with_historian(historian.clone())
+                    .with_engine_liveness(Some(engine_liveness.clone()))
+                    .build();
             let api_cancel = shutdown_tx.subscribe();
             tokio::spawn(async move {
                 if let Err(e) = api_server.serve(listener, api_cancel).await {
@@ -197,6 +195,10 @@ impl Orchestrator {
         }
 
         if scenario.network.opcua.enabled {
+            // Verify endpoint and port availability before spawning
+            let _probe = bind(&scenario.network.opcua.bind_addr).await?;
+            drop(_probe);
+
             let opcua_server = OpcUaServer::new(
                 scenario.network.opcua.bind_addr.clone(),
                 scenario.clone(),
@@ -205,20 +207,26 @@ impl Orchestrator {
             );
             let opcua_cancel = shutdown_tx.subscribe();
             tokio::spawn(async move {
-                opcua_server.run(opcua_cancel).await;
+                if let Err(e) = opcua_server.run(opcua_cancel).await {
+                    error!("OPC-UA server terminated with error: {e}");
+                }
             });
         } else {
             info!("OPC-UA disabled by the scenario");
         }
 
         if scenario.network.mqtt.enabled {
-            let mqtt_publisher = MqttPublisher::new_with_memory(
+            // Validate broker endpoint format before starting runtime task
+            let _ = wireplant_core::net::parse_host_port(&scenario.network.mqtt.broker_addr, 1883)?;
+
+            let mqtt_publisher = MqttPublisher::builder(
                 scenario.clone(),
                 scenario.network.mqtt.broker_addr.clone(),
-                scenario.network.mqtt.client_id.clone(),
                 tick_rx.clone(),
-                shared_memory.clone(),
-            );
+            )
+            .with_client_id(scenario.network.mqtt.client_id.clone())
+            .with_shared_memory(shared_memory.clone())
+            .build();
             let mqtt_cancel = shutdown_tx.subscribe();
             tokio::spawn(async move {
                 // The publisher logs its own connection failures and keeps
@@ -354,15 +362,13 @@ fn spawn_engine(
         .collect();
 
     let alarms = wireplant_engine::alarm::AlarmManager::from_configs(&scenario.alarms);
-
-    let (engine, tick_rx) = SimulationEngine::new_with_all(
-        bindings,
-        processes,
-        alarms.clone(),
-        overrides,
-        shared_memory.clone(),
-        scenario.facility.tick_rate_ms,
-    );
+    let (engine, tick_rx) =
+        SimulationEngine::builder(shared_memory.clone(), scenario.facility.tick_rate_ms)
+            .with_bindings(bindings)
+            .with_processes(processes)
+            .with_alarms(alarms.clone())
+            .with_overrides(overrides)
+            .build();
     let engine_cancel = shutdown_tx.subscribe();
     let handle = tokio::spawn(async move {
         engine.run_supervised(engine_cancel, liveness).await;

@@ -1,4 +1,17 @@
-//! Discrete-time physics engine and mathematical signal generators for WirePlant.
+//! # WirePlant Engine (`wireplant_engine`)
+//!
+//! Discrete-time physics engine, industrial process loop models (Tank, Thermal, PID),
+//! mathematical waveform generators, and ANSI/ISA-18.2 compliant alarm state machines.
+//!
+//! ## Execution Pipeline
+//!
+//! On each tick cycle, [`SimulationEngine`]:
+//! 1. Snapshots operator-driven actuator input tags from [`wireplant_core::memory::PlantMemory`].
+//! 2. Steps autonomous waveforms (sines, ramps, stochastic walks).
+//! 3. Advances closed-loop process models ([`TankProcess`], [`ThermalProcess`], [`PidController`]).
+//! 4. Evaluates reactive trip thresholds.
+//! 5. Advances ISA-18.2 alarm state lifecycles.
+//! 6. Commits calculated values atomically to the Process Image.
 
 pub mod alarm;
 pub mod evaluator;
@@ -17,6 +30,7 @@ pub use process::{
     ThermalModelConfig, ThermalProcess,
 };
 pub use ticker::{
-    EngineTickEvent, RealTimeClock, SimulationClock, SimulationEngine, TagBinding, VirtualTestClock,
+    EngineTickEvent, RealTimeClock, SimulationClock, SimulationEngine, SimulationEngineBuilder,
+    TagBinding, VirtualTestClock,
 };
 pub use waveforms::{ActiveWaveform, WaveformSpec};

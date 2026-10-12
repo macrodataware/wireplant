@@ -43,20 +43,16 @@ impl TuiApp {
     }
 
     pub fn alarm_select_up(&mut self) {
-        if self.cached_alarms.is_empty() {
-            return;
-        }
+        let total = self.cached_alarms.len();
         let current = self.alarm_table_state.selected().unwrap_or(0);
-        let next = current.saturating_sub(1);
+        let next = super::navigation::clamp_step(current, -1, total);
         self.alarm_table_state.select(Some(next));
     }
 
     pub fn alarm_select_down(&mut self) {
-        if self.cached_alarms.is_empty() {
-            return;
-        }
+        let total = self.cached_alarms.len();
         let current = self.alarm_table_state.selected().unwrap_or(0);
-        let next = (current + 1).min(self.cached_alarms.len() - 1);
+        let next = super::navigation::clamp_step(current, 1, total);
         self.alarm_table_state.select(Some(next));
     }
 

@@ -1,4 +1,14 @@
-//! Asynchronous Modbus TCP server adapter for WirePlant.
+//! # WirePlant Modbus (`wireplant_modbus`)
+//!
+//! High-throughput, non-blocking Modbus TCP and RTU serial server implementations
+//! powered by `tokio-modbus` and backed by the shared Process Image.
+//!
+//! ## Non-Blocking Concurrency
+//!
+//! Handlers use non-blocking `try_read()` and `try_write()` methods. When the simulation
+//! loop holds the lock during an active tick, the server immediately returns
+//! `tokio_modbus::prelude::ExceptionCode::ServerDeviceBusy` rather than queuing behind
+//! network buffers.
 
 pub mod handler;
 pub mod rtu;

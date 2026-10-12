@@ -36,33 +36,29 @@ impl OpcUaServer {
     }
 
     /// Serves until the broadcast fires, then shuts the OPC-UA stack down.
-    pub async fn run(self, mut cancel_rx: tokio::sync::broadcast::Receiver<()>) {
-        let (host, port) = match wireplant_core::net::parse_host_port(&self.bind_addr, 4840) {
-            Ok(pair) => pair,
-            Err(e) => {
-                error!("OPC-UA bind address '{}' is invalid: {e}", self.bind_addr);
-                return;
-            }
-        };
+    pub async fn run(
+        self,
+        mut cancel_rx: tokio::sync::broadcast::Receiver<()>,
+    ) -> Result<(), crate::errors::OpcUaError> {
+        let (host, port) =
+            wireplant_core::net::parse_host_port(&self.bind_addr, 4840).map_err(|e| {
+                crate::errors::OpcUaError::InvalidEndpoint {
+                    addr: self.bind_addr.clone(),
+                    reason: e.to_string(),
+                }
+            })?;
         let namespace_uri = format!(
             "urn:WirePlant:{}",
             self.scenario.facility.name.replace(' ', "_")
         );
         let discovery_url = format!("opc.tcp://{host}:{port}/");
 
-        let (server, handle) = match self.build_server(&host, port, &namespace_uri, &discovery_url)
-        {
-            Ok(pair) => pair,
-            Err(e) => {
-                error!("OPC-UA server build error: {e}");
-                return;
-            }
-        };
+        let (server, handle) = self.build_server(&host, port, &namespace_uri, &discovery_url)?;
 
-        let Some(node_manager) = handle.node_managers().get_of_type::<SimpleNodeManager>() else {
-            error!("Failed to acquire the OPC-UA node manager");
-            return;
-        };
+        let node_manager = handle
+            .node_managers()
+            .get_of_type::<SimpleNodeManager>()
+            .ok_or(crate::errors::OpcUaError::NodeManagerMissing)?;
 
         let ns = handle.get_namespace_index(&namespace_uri).unwrap_or(1);
         let node_mappings = populate_address_space(ns, node_manager.clone(), &self.scenario);
@@ -98,6 +94,7 @@ impl OpcUaServer {
 
         cancel_task.abort();
         let _ = sync_handle.await;
+        Ok(())
     }
 
     fn build_server(
@@ -106,7 +103,8 @@ impl OpcUaServer {
         port: u16,
         namespace_uri: &str,
         discovery_url: &str,
-    ) -> Result<(opcua::server::Server, opcua::server::ServerHandle), String> {
+    ) -> Result<(opcua::server::Server, opcua::server::ServerHandle), crate::errors::OpcUaError>
+    {
         let pki_dir = Path::new(&self.scenario.network.opcua.pki_dir);
 
         let _ = std::fs::create_dir_all(pki_dir.join("own"));
@@ -206,6 +204,6 @@ impl OpcUaServer {
                 "wireplant",
             ))
             .build()
-            .map_err(|e| e.to_string())
+            .map_err(crate::errors::OpcUaError::ServerBuild)
     }
 }

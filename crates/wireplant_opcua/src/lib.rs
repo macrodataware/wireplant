@@ -1,10 +1,12 @@
 //! OPC-UA server protocol adapter for WirePlant.
 
 pub mod address_space;
+pub mod errors;
 pub mod server;
 pub mod sync;
 
 pub use address_space::populate_address_space;
+pub use errors::OpcUaError;
 pub use server::OpcUaServer;
 
 #[cfg(test)]
@@ -167,7 +169,8 @@ mod tests {
         tokio::time::timeout(std::time::Duration::from_secs(5), server_task)
             .await
             .expect("the server should stop within 5s of the cancel signal")
-            .expect("the server task should not panic");
+            .expect("the server task should not panic")
+            .expect("the server should shut down without error");
     }
 
     #[tokio::test]

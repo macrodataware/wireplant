@@ -64,8 +64,13 @@ impl std::fmt::Display for MemoryArea {
     }
 }
 
+/// Error returned when parsing an unrecognized memory area string.
+#[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
+#[error("Unknown memory area: '{0}' (expected coil, discrete_input, input_register, or holding_register)")]
+pub struct ParseMemoryAreaError(pub String);
+
 impl std::str::FromStr for MemoryArea {
-    type Err = String;
+    type Err = ParseMemoryAreaError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
@@ -73,7 +78,7 @@ impl std::str::FromStr for MemoryArea {
             "discrete_input" | "DiscreteInput" => Ok(MemoryArea::DiscreteInput),
             "input_register" | "InputRegister" => Ok(MemoryArea::InputRegister),
             "holding_register" | "HoldingRegister" => Ok(MemoryArea::HoldingRegister),
-            other => Err(format!("Unknown memory area: '{other}'")),
+            other => Err(ParseMemoryAreaError(other.to_string())),
         }
     }
 }
@@ -166,8 +171,13 @@ impl std::fmt::Display for TagDataType {
     }
 }
 
+/// Error returned when parsing an unrecognized tag data type string.
+#[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
+#[error("Unknown tag data type: '{0}' (expected boolean, int16, uint16, int32, uint32, float32, or float64)")]
+pub struct ParseTagDataTypeError(pub String);
+
 impl std::str::FromStr for TagDataType {
-    type Err = String;
+    type Err = ParseTagDataTypeError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
@@ -178,7 +188,38 @@ impl std::str::FromStr for TagDataType {
             "uint32" | "UInt32" | "u_int32" => Ok(TagDataType::UInt32),
             "float32" | "Float32" => Ok(TagDataType::Float32),
             "float64" | "Float64" => Ok(TagDataType::Float64),
-            other => Err(format!("Unknown tag data type: '{other}'")),
+            other => Err(ParseTagDataTypeError(other.to_string())),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::str::FromStr;
+
+    #[test]
+    fn parses_valid_and_invalid_memory_areas() {
+        assert_eq!(
+            MemoryArea::from_str("holding_register").unwrap(),
+            MemoryArea::HoldingRegister
+        );
+        assert_eq!(MemoryArea::from_str("coil").unwrap(), MemoryArea::Coil);
+        let err = MemoryArea::from_str("unknown_zone").unwrap_err();
+        assert_eq!(err.to_string(), "Unknown memory area: 'unknown_zone' (expected coil, discrete_input, input_register, or holding_register)");
+    }
+
+    #[test]
+    fn parses_valid_and_invalid_data_types() {
+        assert_eq!(
+            TagDataType::from_str("float32").unwrap(),
+            TagDataType::Float32
+        );
+        assert_eq!(
+            TagDataType::from_str("uint16").unwrap(),
+            TagDataType::UInt16
+        );
+        let err = TagDataType::from_str("invalid_type").unwrap_err();
+        assert_eq!(err.to_string(), "Unknown tag data type: 'invalid_type' (expected boolean, int16, uint16, int32, uint32, float32, or float64)");
     }
 }

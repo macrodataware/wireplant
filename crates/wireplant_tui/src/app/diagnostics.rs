@@ -222,23 +222,30 @@ impl TuiApp {
     }
 
     /// Writes `value` into the tag's memory slot.
-    pub(crate) fn write_tag(&self, tag_id: &str, value: f64) -> Result<(), String> {
-        let Some(tag) = self.scenario.tag(tag_id) else {
-            return Err("tag is not in this scenario".to_string());
-        };
+    pub(crate) fn write_tag(
+        &self,
+        tag_id: &str,
+        value: f64,
+    ) -> Result<(), crate::errors::TuiMemoryError> {
+        let tag = self
+            .scenario
+            .tag(tag_id)
+            .ok_or_else(|| crate::errors::TuiMemoryError::TagNotFound(tag_id.to_string()))?;
 
         if !tag.area.is_writable() {
-            return Err(format!(
-                "tag '{}' is in read-only area '{}'",
-                tag.id,
-                tag.area.as_str()
-            ));
+            return Err(crate::errors::TuiMemoryError::ReadOnlyArea {
+                tag_id: tag.id.clone(),
+                area: tag.area.as_str(),
+            });
         }
 
         let mut mem = self
             .shared_memory
             .try_write()
-            .map_err(|_| "Process Image busy with a simulation tick".to_string())?;
-        encode_tag(&mut mem, tag, value).map_err(|e| e.to_string())
+            .map_err(|_| crate::errors::TuiMemoryError::ProcessImageBusy)?;
+        encode_tag(&mut mem, tag, value).map_err(|source| crate::errors::TuiMemoryError::Encoding {
+            tag_id: tag.id.clone(),
+            source,
+        })
     }
 }

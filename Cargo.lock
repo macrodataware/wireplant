@@ -3286,6 +3286,30 @@ dependencies = [
 ]
 
 [[package]]
+name = "wireplant"
+version = "0.1.0"
+dependencies = [
+ "axum",
+ "clap",
+ "ratatui",
+ "rusqlite",
+ "serde_json",
+ "tokio",
+ "tokio-modbus",
+ "tower",
+ "tracing",
+ "tracing-subscriber",
+ "wireplant_api",
+ "wireplant_config",
+ "wireplant_core",
+ "wireplant_engine",
+ "wireplant_modbus",
+ "wireplant_mqtt",
+ "wireplant_opcua",
+ "wireplant_tui",
+]
+
+[[package]]
 name = "wireplant_api"
 version = "0.1.0"
 dependencies = [
@@ -3301,31 +3325,6 @@ dependencies = [
  "wireplant_config",
  "wireplant_core",
  "wireplant_engine",
-]
-
-[[package]]
-name = "wireplant_cli"
-version = "0.1.0"
-dependencies = [
- "axum",
- "clap",
- "ratatui",
- "rusqlite",
- "serde_json",
- "tokio",
- "tokio-modbus",
- "toml",
- "tower",
- "tracing",
- "tracing-subscriber",
- "wireplant_api",
- "wireplant_config",
- "wireplant_core",
- "wireplant_engine",
- "wireplant_modbus",
- "wireplant_mqtt",
- "wireplant_opcua",
- "wireplant_tui",
 ]
 
 [[package]]
@@ -3381,6 +3380,7 @@ dependencies = [
  "rumqttc",
  "serde",
  "serde_json",
+ "thiserror 2.0.21",
  "tokio",
  "tracing",
  "wireplant_config",
@@ -3393,6 +3393,7 @@ name = "wireplant_opcua"
 version = "0.1.0"
 dependencies = [
  "async-opcua",
+ "thiserror 2.0.21",
  "tokio",
  "toml",
  "tracing",
@@ -3408,6 +3409,7 @@ dependencies = [
  "crossterm",
  "futures",
  "ratatui",
+ "thiserror 2.0.21",
  "tokio",
  "tracing",
  "tracing-subscriber",

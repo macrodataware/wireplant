@@ -51,12 +51,13 @@ async fn run_scenario_conformance_test(
         .collect();
 
     let dt = (scenario.facility.tick_rate_ms as f64) / 1000.0;
-    let (mut engine, _) = SimulationEngine::new_with_processes(
-        bindings,
-        processes,
+    let (mut engine, _) = SimulationEngine::builder(
         memory.clone(),
         scenario.facility.tick_rate_ms,
-    );
+    )
+    .with_bindings(bindings)
+    .with_processes(processes)
+    .build();
 
     // Spawn a tick cycle
     let tag_values = engine.tick_once(dt, 1, dt).await;

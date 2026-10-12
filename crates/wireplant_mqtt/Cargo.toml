@@ -11,7 +11,7 @@ description = "MQTT telemetry publisher and command subscriber for WirePlant"
 readme.workspace = true
 keywords.workspace = true
 categories.workspace = true
-publish = false
+documentation = "https://docs.rs/wireplant_mqtt"
 
 [lints]
 workspace = true
@@ -25,3 +25,4 @@ tokio = { workspace = true, features = ["sync", "time"] }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 tracing = { workspace = true }
+thiserror = { workspace = true }

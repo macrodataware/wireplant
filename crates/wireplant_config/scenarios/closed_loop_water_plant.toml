@@ -1,0 +1,77 @@
+[facility]
+name = "ClearLake Water Treatment & Storage"
+tick_rate_ms = 100
+
+[memory]
+# Keep the floor generous so a SCADA client polling an address this scenario
+# never declares gets a zero rather than an out-of-range exception.
+min_table_registers = 1000
+padding_registers = 8
+
+[network.modbus]
+bind_addr = "0.0.0.0:5020"
+
+[network.opcua]
+enabled = false
+
+[network.http]
+bind_addr = "0.0.0.0:8080"
+
+[network.mqtt]
+broker_addr = "127.0.0.1:1883"
+enabled = false
+
+[[tags]]
+id = "target_level_setpoint"
+description = "Target level setpoint"
+area = "holding_register"
+address = 100
+data_type = "float32"
+endianness = "word_swapped_big"
+units = "m"
+waveform = { type = "constant", value = 5.0 }
+
+[[tags]]
+id = "inlet_valve_cmd"
+description = "Inlet valve command percentage"
+area = "holding_register"
+address = 102
+data_type = "float32"
+endianness = "word_swapped_big"
+units = "%"
+waveform = { type = "constant", value = 0.0 }
+
+[[tags]]
+id = "drain_pump_cmd"
+description = "Drain pump command percentage"
+area = "holding_register"
+address = 104
+data_type = "float32"
+endianness = "word_swapped_big"
+units = "%"
+waveform = { type = "constant", value = 0.0 }
+
+[[tags]]
+id = "water_level_m"
+description = "Measured water level"
+area = "input_register"
+address = 50
+data_type = "float32"
+endianness = "word_swapped_big"
+units = "m"
+waveform = { type = "constant", value = 0.0 }
+
+[[tags]]
+id = "high_level_alarm_coil"
+description = "High level alarm coil"
+area = "coil"
+address = 1
+data_type = "boolean"
+waveform = { type = "trip_threshold", source_tag = "water_level_m", threshold = 8.5 }
+
+[[processes]]
+type = "tank"
+level_tag = "water_level_m"
+inlet_valve_tag = "inlet_valve_cmd"
+drain_pump_tag = "drain_pump_cmd"
+config = { surface_area_m2 = 10.0, max_height_m = 10.0, max_inflow_m3_s = 2.0, max_outflow_m3_s = 1.0, gravity_drain_coeff = 0.05, initial_level_m = 1.0 }

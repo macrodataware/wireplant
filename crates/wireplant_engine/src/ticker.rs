@@ -166,7 +166,84 @@ impl Drop for EngineLivenessGuard {
     }
 }
 
+/// Fluent builder for constructing a [`SimulationEngine`] with optional subsystems.
+#[derive(Debug)]
+pub struct SimulationEngineBuilder {
+    bindings: Vec<TagBinding>,
+    processes: Vec<ActiveProcess>,
+    alarms: Option<AlarmManager>,
+    overrides: Option<SharedOverrides>,
+    shared_memory: SharedProcessImage,
+    tick_rate_ms: u64,
+}
+
+impl SimulationEngineBuilder {
+    /// Creates a new builder with the required process image and tick interval.
+    pub fn new(shared_memory: SharedProcessImage, tick_rate_ms: u64) -> Self {
+        Self {
+            bindings: Vec::new(),
+            processes: Vec::new(),
+            alarms: None,
+            overrides: None,
+            shared_memory,
+            tick_rate_ms,
+        }
+    }
+
+    /// Configures the initial tag bindings to register with the engine.
+    pub fn with_bindings(mut self, bindings: Vec<TagBinding>) -> Self {
+        self.bindings = bindings;
+        self
+    }
+
+    /// Configures the closed-loop physical processes (tanks, thermal, PID).
+    pub fn with_processes(mut self, processes: Vec<ActiveProcess>) -> Self {
+        self.processes = processes;
+        self
+    }
+
+    /// Attaches a custom alarm manager. Defaults to an empty manager if omitted.
+    pub fn with_alarms(mut self, alarms: AlarmManager) -> Self {
+        self.alarms = Some(alarms);
+        self
+    }
+
+    /// Attaches a shared overrides registry. Creates an empty registry if omitted.
+    pub fn with_overrides(mut self, overrides: SharedOverrides) -> Self {
+        self.overrides = Some(overrides);
+        self
+    }
+
+    /// Builds the simulation engine and its initial tick broadcast subscriber.
+    pub fn build(self) -> (SimulationEngine, watch::Receiver<EngineTickEvent>) {
+        let initial_event = EngineTickEvent {
+            tick_number: 0,
+            elapsed_secs: 0.0,
+            tag_values: HashMap::new(),
+        };
+        let (event_tx, event_rx) = watch::channel(initial_event);
+        let engine = SimulationEngine {
+            bindings: self.bindings,
+            processes: self.processes,
+            alarms: self.alarms.unwrap_or_default(),
+            overrides: self.overrides.unwrap_or_else(create_shared_overrides),
+            shared_memory: self.shared_memory,
+            tick_rate_ms: self.tick_rate_ms,
+            event_tx,
+        };
+        (engine, event_rx)
+    }
+}
+
 impl SimulationEngine {
+    /// Returns a fluent builder to construct a `SimulationEngine` with processes, alarms, and overrides.
+    pub fn builder(
+        shared_memory: SharedProcessImage,
+        tick_rate_ms: u64,
+    ) -> SimulationEngineBuilder {
+        SimulationEngineBuilder::new(shared_memory, tick_rate_ms)
+    }
+
     /// Convenience constructor for a scenario with no `[[processes]]` at all —
     /// pure waveform generation onto a Process Image.
     pub fn new(
@@ -174,56 +251,9 @@ impl SimulationEngine {
         shared_memory: SharedProcessImage,
         tick_rate_ms: u64,
     ) -> (Self, watch::Receiver<EngineTickEvent>) {
-        Self::new_with_processes(bindings, Vec::new(), shared_memory, tick_rate_ms)
-    }
-
-    /// Builds the engine and the `watch` receiver subscribers listen on.
-    ///
-    /// The channel is seeded with a tick-zero event so a subscriber that starts
-    /// before the first real tick sees a well-formed frame instead of blocking.
-    pub fn new_with_processes(
-        bindings: Vec<TagBinding>,
-        processes: Vec<ActiveProcess>,
-        shared_memory: SharedProcessImage,
-        tick_rate_ms: u64,
-    ) -> (Self, watch::Receiver<EngineTickEvent>) {
-        Self::new_with_all(
-            bindings,
-            processes,
-            AlarmManager::default(),
-            create_shared_overrides(),
-            shared_memory,
-            tick_rate_ms,
-        )
-    }
-
-    /// Full constructor supporting explicit alarm manager and override configuration.
-    pub fn new_with_all(
-        bindings: Vec<TagBinding>,
-        processes: Vec<ActiveProcess>,
-        alarms: AlarmManager,
-        overrides: SharedOverrides,
-        shared_memory: SharedProcessImage,
-        tick_rate_ms: u64,
-    ) -> (Self, watch::Receiver<EngineTickEvent>) {
-        let initial_event = EngineTickEvent {
-            tick_number: 0,
-            elapsed_secs: 0.0,
-            tag_values: HashMap::new(),
-        };
-        let (event_tx, event_rx) = watch::channel(initial_event);
-        (
-            Self {
-                bindings,
-                processes,
-                alarms,
-                overrides,
-                shared_memory,
-                tick_rate_ms,
-                event_tx,
-            },
-            event_rx,
-        )
+        Self::builder(shared_memory, tick_rate_ms)
+            .with_bindings(bindings)
+            .build()
     }
 
     /// Names of every tag that a closed-loop process reads as an actuator input.
@@ -638,8 +668,10 @@ mod tests {
             ActiveProcess::from_spec(pid_spec),
         ];
 
-        let (mut engine, _) =
-            SimulationEngine::new_with_processes(bindings, processes, Arc::clone(&memory), 100);
+        let (mut engine, _) = SimulationEngine::builder(Arc::clone(&memory), 100)
+            .with_bindings(bindings)
+            .with_processes(processes)
+            .build();
 
         // Tick 1s: with inlet_valve read as 1.0 from holding reg 0, inflow = 2.0 m3/s * 1s = 2.0 m3
         // Surface area 1.0 -> level = 2.0 m

@@ -41,53 +41,58 @@ fn validate_host_port(protocol: &str, addr: &str) -> Result<(), ConfigError> {
     Ok(())
 }
 
-/// Validates that an f64 value is strictly finite (not NaN, not +inf, not -inf).
-fn require_finite(val: f64, field_name: &str, context: &str) -> Result<(), ConfigError> {
-    if val.is_finite() {
-        Ok(())
-    } else {
-        Err(ConfigError::NonFiniteParameter {
-            context: context.to_string(),
-            field: field_name.to_string(),
-        })
+pub(crate) trait ValidateFinite {
+    fn validate_finite(&self, field_name: &str, context: &str) -> Result<(), ConfigError>;
+}
+
+impl ValidateFinite for f64 {
+    fn validate_finite(&self, field_name: &str, context: &str) -> Result<(), ConfigError> {
+        if self.is_finite() {
+            Ok(())
+        } else {
+            Err(ConfigError::NonFiniteParameter {
+                context: context.to_string(),
+                field: field_name.to_string(),
+            })
+        }
     }
 }
 
-/// Validates that a slice of (value, field_name) pairs are all strictly finite.
-fn require_all_finite(fields: &[(f64, &str)], context: &str) -> Result<(), ConfigError> {
-    for &(val, name) in fields {
-        require_finite(val, name, context)?;
+impl ValidateFinite for Option<f64> {
+    fn validate_finite(&self, field_name: &str, context: &str) -> Result<(), ConfigError> {
+        if let Some(val) = self {
+            val.validate_finite(field_name, context)
+        } else {
+            Ok(())
+        }
     }
-    Ok(())
 }
 
-/// Validates that an optional f64 value is strictly finite if present.
-fn require_opt_finite(
-    val: Option<f64>,
-    field_name: &str,
-    context: &str,
-) -> Result<(), ConfigError> {
-    if let Some(v) = val {
-        require_finite(v, field_name, context)?;
-    }
-    Ok(())
+macro_rules! validate_finite {
+    ($ctx:expr, $(($name:expr, $val:expr)),+ $(,)?) => {
+        $(
+            $val.validate_finite($name, $ctx)?;
+        )+
+    };
 }
 
 fn validate_waveform(tag_id: &str, waveform: &WaveformSpec) -> Result<(), ConfigError> {
     let ctx = format!("tag '{tag_id}' waveform");
     match waveform {
         WaveformSpec::Constant { value } => {
-            require_finite(*value, "value", &ctx)?;
+            value.validate_finite("value", &ctx)?;
         }
         WaveformSpec::Sine {
             min,
             max,
             period_secs,
         } => {
-            require_all_finite(
-                &[(*min, "min"), (*max, "max"), (*period_secs, "period_secs")],
+            validate_finite!(
                 &ctx,
-            )?;
+                ("min", *min),
+                ("max", *max),
+                ("period_secs", *period_secs)
+            );
             if *min >= *max {
                 return Err(ConfigError::InvalidWaveform {
                     tag_id: tag_id.to_string(),
@@ -106,10 +111,12 @@ fn validate_waveform(tag_id: &str, waveform: &WaveformSpec) -> Result<(), Config
             max,
             period_secs,
         } => {
-            require_all_finite(
-                &[(*min, "min"), (*max, "max"), (*period_secs, "period_secs")],
+            validate_finite!(
                 &ctx,
-            )?;
+                ("min", *min),
+                ("max", *max),
+                ("period_secs", *period_secs)
+            );
             if *min >= *max {
                 return Err(ConfigError::InvalidWaveform {
                     tag_id: tag_id.to_string(),
@@ -128,14 +135,12 @@ fn validate_waveform(tag_id: &str, waveform: &WaveformSpec) -> Result<(), Config
             max,
             step_per_tick,
         } => {
-            require_all_finite(
-                &[
-                    (*min, "min"),
-                    (*max, "max"),
-                    (*step_per_tick, "step_per_tick"),
-                ],
+            validate_finite!(
                 &ctx,
-            )?;
+                ("min", *min),
+                ("max", *max),
+                ("step_per_tick", *step_per_tick)
+            );
             if *min >= *max {
                 return Err(ConfigError::InvalidWaveform {
                     tag_id: tag_id.to_string(),
@@ -154,14 +159,12 @@ fn validate_waveform(tag_id: &str, waveform: &WaveformSpec) -> Result<(), Config
             max_jitter,
             drift_sigma,
         } => {
-            require_all_finite(
-                &[
-                    (*center, "center"),
-                    (*max_jitter, "max_jitter"),
-                    (*drift_sigma, "drift_sigma"),
-                ],
+            validate_finite!(
                 &ctx,
-            )?;
+                ("center", *center),
+                ("max_jitter", *max_jitter),
+                ("drift_sigma", *drift_sigma)
+            );
             if *max_jitter < 0.0 {
                 return Err(ConfigError::InvalidWaveform {
                     tag_id: tag_id.to_string(),
@@ -176,7 +179,7 @@ fn validate_waveform(tag_id: &str, waveform: &WaveformSpec) -> Result<(), Config
             }
         }
         WaveformSpec::TripThreshold { threshold, .. } => {
-            require_finite(*threshold, "threshold", &ctx)?;
+            threshold.validate_finite("threshold", &ctx)?;
         }
     }
     Ok(())
@@ -383,17 +386,15 @@ pub fn validate_scenario(config: &ScenarioConfig) -> Result<(), ConfigError> {
                 check_writable_input("Tank", drain_pump_tag, &tag_areas)?;
 
                 let ctx = "Process Tank";
-                require_all_finite(
-                    &[
-                        (tank_cfg.surface_area_m2, "surface_area_m2"),
-                        (tank_cfg.max_height_m, "max_height_m"),
-                        (tank_cfg.max_inflow_m3_s, "max_inflow_m3_s"),
-                        (tank_cfg.max_outflow_m3_s, "max_outflow_m3_s"),
-                        (tank_cfg.gravity_drain_coeff, "gravity_drain_coeff"),
-                    ],
+                validate_finite!(
                     ctx,
-                )?;
-                require_opt_finite(tank_cfg.initial_level_m, "initial_level_m", ctx)?;
+                    ("surface_area_m2", tank_cfg.surface_area_m2),
+                    ("max_height_m", tank_cfg.max_height_m),
+                    ("max_inflow_m3_s", tank_cfg.max_inflow_m3_s),
+                    ("max_outflow_m3_s", tank_cfg.max_outflow_m3_s),
+                    ("gravity_drain_coeff", tank_cfg.gravity_drain_coeff),
+                    ("initial_level_m", tank_cfg.initial_level_m),
+                );
                 if tank_cfg.surface_area_m2 <= 0.0 || tank_cfg.max_height_m <= 0.0 {
                     return Err(ConfigError::InvalidProcessConfig {
                         process_type: "Tank".into(),
@@ -410,16 +411,14 @@ pub fn validate_scenario(config: &ScenarioConfig) -> Result<(), ConfigError> {
                 check_writable_input("Thermal", heater_tag, &tag_areas)?;
 
                 let ctx = "Process Thermal";
-                require_all_finite(
-                    &[
-                        (therm_cfg.ambient_temp_c, "ambient_temp_c"),
-                        (therm_cfg.max_heating_power_watts, "max_heating_power_watts"),
-                        (therm_cfg.heat_capacity_j_k, "heat_capacity_j_k"),
-                        (therm_cfg.heat_loss_coeff_w_k, "heat_loss_coeff_w_k"),
-                    ],
+                validate_finite!(
                     ctx,
-                )?;
-                require_opt_finite(therm_cfg.initial_temp_c, "initial_temp_c", ctx)?;
+                    ("ambient_temp_c", therm_cfg.ambient_temp_c),
+                    ("max_heating_power_watts", therm_cfg.max_heating_power_watts),
+                    ("heat_capacity_j_k", therm_cfg.heat_capacity_j_k),
+                    ("heat_loss_coeff_w_k", therm_cfg.heat_loss_coeff_w_k),
+                    ("initial_temp_c", therm_cfg.initial_temp_c),
+                );
                 if therm_cfg.heat_capacity_j_k <= 0.0 {
                     return Err(ConfigError::InvalidProcessConfig {
                         process_type: "Thermal".into(),
@@ -438,17 +437,15 @@ pub fn validate_scenario(config: &ScenarioConfig) -> Result<(), ConfigError> {
                 check_register_output("PidController", output_tag, &tag_areas)?;
 
                 let ctx = "Process PidController";
-                require_all_finite(
-                    &[
-                        (pid_cfg.kp, "kp"),
-                        (pid_cfg.ki, "ki"),
-                        (pid_cfg.kd, "kd"),
-                        (pid_cfg.min_output, "min_output"),
-                        (pid_cfg.max_output, "max_output"),
-                        (pid_cfg.derivative_filter_n, "derivative_filter_n"),
-                    ],
+                validate_finite!(
                     ctx,
-                )?;
+                    ("kp", pid_cfg.kp),
+                    ("ki", pid_cfg.ki),
+                    ("kd", pid_cfg.kd),
+                    ("min_output", pid_cfg.min_output),
+                    ("max_output", pid_cfg.max_output),
+                    ("derivative_filter_n", pid_cfg.derivative_filter_n),
+                );
 
                 if pid_cfg.min_output >= pid_cfg.max_output {
                     return Err(ConfigError::InvalidProcessConfig {
@@ -473,9 +470,9 @@ pub fn validate_scenario(config: &ScenarioConfig) -> Result<(), ConfigError> {
                     missing_tag: action.target_tag.clone(),
                 });
             }
-            require_finite(action.force_value, "force_value", &ctx)?;
+            action.force_value.validate_finite("force_value", &ctx)?;
             if let Some(d) = action.duration_secs {
-                require_finite(d, "duration_secs", &ctx)?;
+                d.validate_finite("duration_secs", &ctx)?;
                 if d <= 0.0 {
                     return Err(ConfigError::NonFiniteParameter {
                         context: ctx.clone(),
@@ -500,16 +497,14 @@ pub fn validate_scenario(config: &ScenarioConfig) -> Result<(), ConfigError> {
         }
 
         let ctx = format!("Alarm '{}'", alarm.id);
-        require_all_finite(
-            &[
-                (alarm.limit, "limit"),
-                (alarm.deadband, "deadband"),
-                (alarm.on_delay_secs, "on_delay_secs"),
-                (alarm.off_delay_secs, "off_delay_secs"),
-                (alarm.max_shelve_duration_secs, "max_shelve_duration_secs"),
-            ],
+        validate_finite!(
             &ctx,
-        )?;
+            ("limit", alarm.limit),
+            ("deadband", alarm.deadband),
+            ("on_delay_secs", alarm.on_delay_secs),
+            ("off_delay_secs", alarm.off_delay_secs),
+            ("max_shelve_duration_secs", alarm.max_shelve_duration_secs),
+        );
 
         if alarm.deadband < 0.0 {
             return Err(ConfigError::InvalidAlarm {
