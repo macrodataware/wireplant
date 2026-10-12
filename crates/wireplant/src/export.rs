@@ -3,7 +3,8 @@ use std::fs::File;
 use std::io::{self, BufWriter, Write};
 use std::path::Path;
 
-pub(crate) struct ExportOptions {
+#[derive(Debug, Clone)]
+pub struct ExportOptions {
     pub db_path: String,
     pub tag_id: Option<String>,
     pub format: String,
@@ -14,9 +15,7 @@ pub(crate) struct ExportOptions {
 }
 
 /// Streams recorded telemetry out of the SQLite historian without booting the simulator.
-pub(crate) fn run_export(
-    opts: ExportOptions,
-) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+pub fn run_export(opts: ExportOptions) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let path = Path::new(&opts.db_path);
     if !path.exists() {
         return Err(format!("Database file not found: '{}'", opts.db_path).into());

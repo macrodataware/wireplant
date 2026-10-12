@@ -11,9 +11,10 @@ set -euo pipefail
 # ==============================================================================
 
 MODE="${1:-}"
+START_FROM="${2:-}"
 
 if [[ "$MODE" != "--dry-run" && "$MODE" != "--publish" ]]; then
-    echo "Usage: $0 [--dry-run | --publish]"
+    echo "Usage: $0 [--dry-run | --publish] [start_from_crate]"
     exit 1
 fi
 
@@ -47,7 +48,21 @@ CRATES=(
 
 INDEX_DELAY=20
 
+SKIP=false
+if [[ -n "$START_FROM" ]]; then
+    SKIP=true
+fi
+
 for CRATE in "${CRATES[@]}"; do
+    if [[ "$SKIP" == "true" ]]; then
+        if [[ "$CRATE" == "$START_FROM" ]]; then
+            SKIP=false
+        else
+            echo "Skipping already published crate: $CRATE"
+            continue
+        fi
+    fi
+
     echo "------------------------------------------------------------"
     echo "Processing: $CRATE ($MODE)"
     echo "------------------------------------------------------------"
@@ -56,7 +71,30 @@ for CRATE in "${CRATES[@]}"; do
         echo "Validating package contents for $CRATE:"
         cargo package -p "$CRATE" --list --allow-dirty
     else
-        cargo publish -p "$CRATE" $FLAGS
+        while true; do
+            set +e
+            OUTPUT=$(cargo publish -p "$CRATE" $FLAGS 2>&1)
+            STATUS=$?
+            set -e
+            echo "$OUTPUT"
+
+            if [[ $STATUS -eq 0 ]]; then
+                break
+            fi
+
+            if echo "$OUTPUT" | grep -q "429 Too Many Requests"; then
+                echo "============================================================"
+                echo "Hit crates.io rate limit (status 429) on new crate $CRATE."
+                echo "Waiting 600s (10 minutes) for token bucket to refill..."
+                echo "============================================================"
+                sleep 600
+                echo "Retrying publish for $CRATE..."
+            else
+                echo "Publish failed with error for $CRATE."
+                exit $STATUS
+            fi
+        done
+
         if [[ "$CRATE" != "${CRATES[-1]}" ]]; then
             echo "Waiting ${INDEX_DELAY}s for crates.io index to update before dependent crates..."
             sleep "$INDEX_DELAY"

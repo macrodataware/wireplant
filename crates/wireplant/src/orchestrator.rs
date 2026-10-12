@@ -27,10 +27,11 @@ use crate::shutdown::wait_for_shutdown_signal;
 /// listeners, spawns the engine and the protocol servers, then blocks on either
 /// the TUI loop or a shutdown signal. Adding a protocol means adding one bind,
 /// one spawn block and one `shutdown_tx.subscribe()`.
-pub(crate) struct Orchestrator;
+#[derive(Debug, Clone, Copy, Default)]
+pub struct Orchestrator;
 
 impl Orchestrator {
-    pub(crate) async fn run(
+    pub async fn run(
         args: CliArgs,
         log_rx: Option<tokio::sync::mpsc::UnboundedReceiver<wireplant_tui::LogEntry>>,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {

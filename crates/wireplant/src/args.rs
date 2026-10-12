@@ -1,7 +1,7 @@
 use clap::{Parser, Subcommand};
 
 #[derive(Subcommand, Debug, Clone, PartialEq, Eq)]
-pub(crate) enum CliCommand {
+pub enum CliCommand {
     /// Validates a scenario configuration without starting any listeners or simulation loops.
     Validate {
         /// Path to scenario TOML file (positional). If omitted, validates the embedded default.
@@ -48,7 +48,7 @@ pub(crate) enum CliCommand {
 /// WirePlant: Industrial OT Protocol & Telemetry Mock CLI
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
-pub(crate) struct CliArgs {
+pub struct CliArgs {
     #[command(subcommand)]
     pub command: Option<CliCommand>,
 
@@ -117,14 +117,14 @@ impl CliArgs {
     ///
     /// One predicate, because the log-subscriber setup in `main` and the spawn
     /// logic in the orchestrator both have to agree about what "TUI mode" means.
-    pub(crate) fn wants_tui(&self) -> bool {
+    pub fn wants_tui(&self) -> bool {
         self.tui && !self.headless
     }
 
     /// Returns the scenario target to validate if validation mode was requested via
     /// subcommand (`wireplant validate [FILE]` or `wireplant validate -s/--scenario FILE`)
     /// or flag (`wireplant --validate [-s FILE]`).
-    pub(crate) fn validation_target(&self) -> Option<Option<&str>> {
+    pub fn validation_target(&self) -> Option<Option<&str>> {
         if let Some(CliCommand::Validate { path, scenario }) = &self.command {
             Some(scenario.as_deref().or(path.as_deref()))
         } else if self.validate {

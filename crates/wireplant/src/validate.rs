@@ -5,7 +5,7 @@ use wireplant_config::schema::ScenarioConfig;
 /// Runs validation on the specified scenario path or default embedded scenario.
 /// Prints a structured report to standard output and returns `Ok(())` on success
 /// or an error message on failure.
-pub(crate) fn run_validation(scenario_path: Option<&str>) -> Result<(), String> {
+pub fn run_validation(scenario_path: Option<&str>) -> Result<(), String> {
     let (source_name, toml_str) = match scenario_path {
         Some(path) => {
             let content = std::fs::read_to_string(path)

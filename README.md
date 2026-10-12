@@ -1,5 +1,7 @@
 # WirePlant
 
+[![Crates.io](https://img.shields.io/crates/v/wireplant.svg)](https://crates.io/crates/wireplant)
+[![docs.rs](https://docs.rs/wireplant/badge.svg)](https://docs.rs/wireplant)
 [![License](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue.svg)](LICENSE-MIT)
 [![Company](https://img.shields.io/badge/owned%20by-macrodataware-blue)](https://macrodataware.com/)
 
@@ -13,9 +15,19 @@ vendor's device, and will happily serve numbers a real PLC would never produce.
 
 ## Build and run
 
+Install from crates.io:
+
+```bash
+cargo install wireplant
+wireplant --help
+```
+
+Or build from source:
+
 ```bash
 cargo build --release --bin wireplant
 ./target/release/wireplant --help
+```
 
 # Validate scenario syntax, tag allocations, and memory requirements offline:
 ./target/release/wireplant validate scenarios/closed_loop_water_plant.toml
@@ -259,6 +271,18 @@ crates/
 ├── wireplant_tui/       # Ratatui 7-tab industrial operations dashboard
 └── wireplant/           # The `wireplant` binary: clap args, validator, orchestrator, shutdown
 ```
+
+| Crate | Crates.io | Documentation | Description |
+|---|---|---|---|
+| [`wireplant`](crates/wireplant) | [![crates.io](https://img.shields.io/crates/v/wireplant.svg)](https://crates.io/crates/wireplant) | [![docs.rs](https://docs.rs/wireplant/badge.svg)](https://docs.rs/wireplant) | CLI binary and runtime orchestrator |
+| [`wireplant_core`](crates/wireplant_core) | [![crates.io](https://img.shields.io/crates/v/wireplant_core.svg)](https://crates.io/crates/wireplant_core) | [![docs.rs](https://docs.rs/wireplant_core/badge.svg)](https://docs.rs/wireplant_core) | Process Image memory, endianness codec, and data types |
+| [`wireplant_engine`](crates/wireplant_engine) | [![crates.io](https://img.shields.io/crates/v/wireplant_engine.svg)](https://crates.io/crates/wireplant_engine) | [![docs.rs](https://docs.rs/wireplant_engine/badge.svg)](https://docs.rs/wireplant_engine) | Simulation ticker, process models (PID, Tank, Thermal), ISA-18.2 alarms |
+| [`wireplant_config`](crates/wireplant_config) | [![crates.io](https://img.shields.io/crates/v/wireplant_config.svg)](https://crates.io/crates/wireplant_config) | [![docs.rs](https://docs.rs/wireplant_config/badge.svg)](https://docs.rs/wireplant_config) | TOML scenario schema and validator |
+| [`wireplant_modbus`](crates/wireplant_modbus) | [![crates.io](https://img.shields.io/crates/v/wireplant_modbus.svg)](https://crates.io/crates/wireplant_modbus) | [![docs.rs](https://docs.rs/wireplant_modbus/badge.svg)](https://docs.rs/wireplant_modbus) | Modbus TCP and RTU protocol servers |
+| [`wireplant_opcua`](crates/wireplant_opcua) | [![crates.io](https://img.shields.io/crates/v/wireplant_opcua.svg)](https://crates.io/crates/wireplant_opcua) | [![docs.rs](https://docs.rs/wireplant_opcua/badge.svg)](https://docs.rs/wireplant_opcua) | OPC-UA server and address space synchronization |
+| [`wireplant_mqtt`](crates/wireplant_mqtt) | [![crates.io](https://img.shields.io/crates/v/wireplant_mqtt.svg)](https://crates.io/crates/wireplant_mqtt) | [![docs.rs](https://docs.rs/wireplant_mqtt/badge.svg)](https://docs.rs/wireplant_mqtt) | MQTT telemetry publisher and command subscriber |
+| [`wireplant_api`](crates/wireplant_api) | [![crates.io](https://img.shields.io/crates/v/wireplant_api.svg)](https://crates.io/crates/wireplant_api) | [![docs.rs](https://docs.rs/wireplant_api/badge.svg)](https://docs.rs/wireplant_api) | REST inspection API and fault injection endpoints |
+| [`wireplant_tui`](crates/wireplant_tui) | [![crates.io](https://img.shields.io/crates/v/wireplant_tui.svg)](https://crates.io/crates/wireplant_tui) | [![docs.rs](https://docs.rs/wireplant_tui/badge.svg)](https://docs.rs/wireplant_tui) | Terminal user interface operations dashboard |
 
 ## The dashboard
 

@@ -1,11 +1,10 @@
 use clap::Parser;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
-mod args;
-mod export;
-mod orchestrator;
-mod shutdown;
-mod validate;
+use wireplant::args::{CliArgs, CliCommand};
+use wireplant::export::{self, ExportOptions};
+use wireplant::orchestrator::Orchestrator;
+use wireplant::validate;
 
 /// Sets up the process-wide tracing subscriber before starting the runtime.
 ///
@@ -41,7 +40,7 @@ fn init_tracing(
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    let args = args::CliArgs::parse();
+    let args = CliArgs::parse();
 
     if let Some(target) = args.validation_target() {
         return match validate::run_validation(target) {
@@ -53,7 +52,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         };
     }
 
-    if let Some(args::CliCommand::ExportHistory {
+    if let Some(CliCommand::ExportHistory {
         db,
         tag,
         format,
@@ -63,7 +62,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         limit,
     }) = args.command.clone()
     {
-        let opts = export::ExportOptions {
+        let opts = ExportOptions {
             db_path: db,
             tag_id: tag,
             format,
@@ -83,5 +82,5 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 
     let log_rx = init_tracing(args.wants_tui());
 
-    orchestrator::Orchestrator::run(args, log_rx).await
+    Orchestrator::run(args, log_rx).await
 }

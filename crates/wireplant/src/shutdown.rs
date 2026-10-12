@@ -2,7 +2,7 @@ use tokio::signal;
 use tracing::info;
 
 /// Waits for an OS termination signal (Ctrl+C or SIGTERM).
-pub(crate) async fn wait_for_shutdown_signal() {
+pub async fn wait_for_shutdown_signal() {
     let ctrl_c = async {
         signal::ctrl_c()
             .await

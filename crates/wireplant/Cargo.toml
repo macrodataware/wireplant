@@ -16,6 +16,14 @@ documentation = "https://docs.rs/wireplant"
 [lints]
 workspace = true
 
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
+
+[lib]
+name = "wireplant"
+path = "src/lib.rs"
+
 [[bin]]
 name = "wireplant"
 path = "src/main.rs"
